@@ -1,7 +1,7 @@
-from flash_crash.GameConfig import GameConfig
-from flash_crash.NetworkGenerator import generate_rand_network
-from flash_crash.constants import BUDGETS
-from flash_crash.flash_crash_players import FlashCrashRootChanceGameState
+from GameConfig import GameConfig
+from NetworkGenerator import generate_rand_network
+from constants import BUDGETS
+from flash_crash_players_cfr import FlashCrashRootChanceGameState
 from games.cfr import ChanceSamplingCFR, VanillaCFR
 
 

@@ -33,7 +33,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=4, symbol='a2')
         f1 = MockFund('f1', a1,1)
         f2 = MockFund('f2', a2,1)
-        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1,'f2':f2}, assets={'a1':a1,'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
+        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
         solver = SingleAgentDynamicProgrammingSolver(network, 4, 0.5)
         self.assertEqual(solver.weights[1], 5)
@@ -45,7 +45,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = MockFund('f1', a1,1)
         f2 = MockFund('f2', a2,1)
-        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1,'f2':f2}, assets={'a1':a1,'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
+        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
         solver = SingleAgentDynamicProgrammingSolver(network, 4, 1)
         self.assertEqual(solver.results.value, 2)
@@ -57,7 +57,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = MockFund('f1', a1,1)
         f2 = MockFund('f2', a2,1)
-        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1,'f2':f2}, assets={'a1':a1,'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
+        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
         solver = SingleAgentDynamicProgrammingSolver(network, 3, 1)
         self.assertEqual(solver.results.value, 2)
@@ -70,7 +70,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = MockFund(symbol='f1', my_asset=a1, margin_ratio=0.1)
         f2 = MockFund(symbol='f2', my_asset=a2, margin_ratio=0.9)
-        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1,'f2':f2}, assets={'a1':a1,'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
+        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
         solver = SingleAgentDynamicProgrammingSolver(network, 4, 1)
         self.assertEqual(solver.results.value, 1)
@@ -81,7 +81,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = MockFund(symbol='f1', my_asset=a1, margin_ratio=1)
         f2 = MockFund(symbol='f1', my_asset=a1, margin_ratio=1)
-        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1,'f2':f2}, assets={'a1':a1,'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
+        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
         solver = SingleAgentDynamicProgrammingSolver(network, 4, 1)
         self.assertEqual(solver.results.value, 2)
@@ -93,11 +93,11 @@ class TestSingleAgentSolver  (unittest.TestCase):
         a1 = AssetFundNetwork.Asset(50, 2, 'a1')
         a2 = AssetFundNetwork.Asset(20, 2, 'a2')
         a3 = AssetFundNetwork.Asset(30, 2, 'a3')
-        f1 = AssetFundNetwork.Fund('f1', {'a1':10}, {'a2':10},1000,1,1)
-        f2 = AssetFundNetwork.Fund('f2', {'a2':10}, {'a3':10},1000,1,1)
+        f1 = AssetFundNetwork.Fund('f1', {'a1':10}, {'a2':10}, 1000, 1, 1)
+        f2 = AssetFundNetwork.Fund('f2', {'a2':10}, {'a3':10}, 1000, 1, 1)
 
 
-        network = AssetFundNetwork.AssetFundsNetwork(funds = [f1,f2], assets=[a1,a2,a3])
+        network = AssetFundNetwork.AssetFundsNetwork(funds = [f1, f2], assets=[a1, a2, a3])
 
         solver = SingleAgentDynamicProgrammingSolver(network, 10, 0.5)
         print(solver.results.value)

@@ -64,13 +64,15 @@ class TestMinimax(unittest.TestCase):
                                                      assets={'a1':a1},
                                                      mi_calc=MockMarketImpactTestCalculator(),
                                                      limit_trade_step = True)
-        value, actions, actual_tree = minimax(ROOT_ATTACKER, network, 205,190)
+
+     #   value, actions, actual_tree = minimax(ROOT_ATTACKER, network, 205,190)
+        result = minimax(ROOT_ATTACKER, network, 205,190)
         expected_tree = self.gen_tree()
 
-        print(value)
-        print(actions)
-        self.compare_trees(actual_tree, expected_tree)
-
+        print(result.value)
+        print(result.actions)
+        self.compare_trees(result.node, expected_tree)
+        self.assertEqual(int(result.network.assets['a1'].price),99)
 
 if __name__ == '__main__':
     unittest.main()

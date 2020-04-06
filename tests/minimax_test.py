@@ -71,7 +71,7 @@ class TestMinimax(unittest.TestCase):
 
         print(result.value)
         print(result.actions)
-        self.compare_trees(result.node, expected_tree)
+        self.compare_trees(result.tree, expected_tree)
         self.assertEqual(int(result.network.assets['a1'].price),99)
 
 if __name__ == '__main__':

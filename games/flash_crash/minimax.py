@@ -14,7 +14,7 @@ class Result:
         best_actions.extend(future_actions)
         self.actions = best_actions
         node.value = value
-        self.node = node
+        self.tree = node
         self.network = network
 
 
@@ -51,7 +51,7 @@ def minimax(turn, network: AssetFundsNetwork, attacker_budget, defender_budget):
             net2 = copy.deepcopy(network)
             net2.submit_sell_orders(order_set)
             child_result= minimax(MARKET,net2,attacker_budget - cost, defender_budget)
-            node.add_child(str(order_set), child_result.node)
+            node.add_child(str(order_set), child_result.tree)
             if not best_result or child_result.value < best_result.value:
                 best_result = Result(value=child_result.value,node=node, order_set=order_set,
                                      future_actions=child_result.actions, network=child_result.network)
@@ -62,7 +62,7 @@ def minimax(turn, network: AssetFundsNetwork, attacker_budget, defender_budget):
             net2 = copy.deepcopy(network)
             net2.submit_buy_orders(order_set)
             child_result = minimax(ATTACKER,net2,attacker_budget, defender_budget - cost)
-            node.add_child(str(order_set), child_result.node)
+            node.add_child(str(order_set), child_result.tree)
             if not best_result or child_result.value > best_result.value:
                 best_result = Result(value=child_result.value, node=node, order_set=order_set,
                                      future_actions=child_result.actions, network=child_result.network)
@@ -80,7 +80,7 @@ def minimax(turn, network: AssetFundsNetwork, attacker_budget, defender_budget):
                                      future_actions=[], network=network)
 
         child_result  = minimax(DEFENDER,network,attacker_budget, defender_budget)
-        node.add_child('MARKET', child_result.node)
+        node.add_child('MARKET', child_result.tree)
         return Result(value=child_result.value,node=node, order_set=['MARKET'],
                                      future_actions=child_result.actions, network=child_result.network)
 

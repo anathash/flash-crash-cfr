@@ -2,6 +2,7 @@ import unittest
 
 
 import AssetFundNetwork
+from AssetFundNetworkTest import MockMarketImpactTestCalculator
 from MarketImpactCalculator import MarketImpactCalculator
 from Orders import NoLimitOrder, Sell
 from single_agent import SingleAgentDynamicProgrammingSolver
@@ -35,7 +36,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         f2 = MockFund('f2', a2,1)
         network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
-        solver = SingleAgentDynamicProgrammingSolver(network, 4, 0.5)
+        solver = SingleAgentDynamicProgrammingSolver(network, 4, 0.5, 1)
         self.assertEqual(solver.weights[1], 5)
         self.assertEqual(solver.weights[2], 4)
 
@@ -47,7 +48,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         f2 = MockFund('f2', a2,1)
         network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
-        solver = SingleAgentDynamicProgrammingSolver(network, 4, 1)
+        solver = SingleAgentDynamicProgrammingSolver(network, 4, 1, 1)
         self.assertEqual(solver.results.value, 2)
         self.assertEqual(solver.results.actions[0], Sell('a1', 1))
         self.assertEqual(solver.results.actions[1], Sell('a2', 1))
@@ -59,7 +60,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         f2 = MockFund('f2', a2,1)
         network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
-        solver = SingleAgentDynamicProgrammingSolver(network, 3, 1)
+        solver = SingleAgentDynamicProgrammingSolver(network, 3, 1, 1)
         self.assertEqual(solver.results.value, 2)
         self.assertEqual(solver.results.actions[0], Sell('a1', 1))
         self.assertEqual(solver.results.actions[1], Sell('a2', 1))
@@ -67,12 +68,12 @@ class TestSingleAgentSolver  (unittest.TestCase):
 
     def test_3(self):
         a1 = AssetFundNetwork.Asset(price=1, daily_volume=1, symbol='a1')
-        a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
+        a2 = AssetFundNetwork.Asset(price=2, daily_volume=2, symbol='a2')
         f1 = MockFund(symbol='f1', my_asset=a1, margin_ratio=0.1)
         f2 = MockFund(symbol='f2', my_asset=a2, margin_ratio=0.9)
         network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
-        solver = SingleAgentDynamicProgrammingSolver(network, 4, 1)
+        solver = SingleAgentDynamicProgrammingSolver(network, 4, 0.5, 1)
         self.assertEqual(solver.results.value, 1)
         self.assertEqual(solver.results.actions[0], Sell('a2', 2))
 
@@ -83,11 +84,21 @@ class TestSingleAgentSolver  (unittest.TestCase):
         f2 = MockFund(symbol='f1', my_asset=a1, margin_ratio=1)
         network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
-        solver = SingleAgentDynamicProgrammingSolver(network, 4, 1)
+        solver = SingleAgentDynamicProgrammingSolver(network, 4, 1, 1)
         self.assertEqual(solver.results.value, 2)
         self.assertEqual(solver.results.actions[0], Sell('a1', 1))
 
+    def test_order_limited_by_parameter(self):
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=1, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=2, daily_volume=2, symbol='a2')
+        f1 = MockFund(symbol='f1', my_asset=a1, margin_ratio=0.9)
+        f2 = MockFund(symbol='f2', my_asset=a2, margin_ratio=0.9)
+        network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
+                                                     mi_calc=MockMarketImpactTestCalculator())
 
+        solver = SingleAgentDynamicProgrammingSolver(network, 4, 0.5, 1)
+        self.assertEqual(solver.results.value, 1)
+        self.assertEqual(solver.results.actions[0], Sell('a2', 2))
 
     def not_test_solver_finds_best_attack_integration(self):
         a1 = AssetFundNetwork.Asset(50, 2, 'a1')

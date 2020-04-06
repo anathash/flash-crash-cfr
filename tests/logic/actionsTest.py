@@ -61,7 +61,7 @@ class TestActions  (unittest.TestCase):
         expected_orders.append(([Buy('a1',5)], 5))
         expected_orders.append(([Buy('a2', 2)], 4))
         expected_orders.append(([Buy('a3', 1)], 7))
-        expected_orders.append(([Buy('a2', 2), Buy('a1', 5)], 9))
+        expected_orders.append(([ Buy('a1', 5),Buy('a2', 2)], 9))
         expected_orders.append(([],0))
         actual_orders.sort(key=operator.itemgetter(1))
         expected_orders.sort(key=operator.itemgetter(1))

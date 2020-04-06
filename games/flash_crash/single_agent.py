@@ -16,8 +16,9 @@ class Solution:
 
 
 class SingleAgentDynamicProgrammingSolver:
-    def __init__(self, network: AssetFundNetwork, capacity, min_order_size):
-        self.min_order_size = min_order_size
+    def __init__(self, network: AssetFundNetwork, capacity, min_order_percentage, max_order_percentage):
+        self.max_order_num =(int)(floor(max_order_percentage/min_order_percentage))
+        self.min_order_percentage = min_order_percentage
         num_assets = len(network.assets)
         self.id_to_sym = {}
         i = 1
@@ -25,15 +26,16 @@ class SingleAgentDynamicProgrammingSolver:
             self.id_to_sym[i] = sym
             i += 1
         self.solutions = [[None for x in range(capacity + 1)] for x in range(num_assets + 1)]
-        self.weights = self.gen_weights_array(min_order_size, network)
+        #self.solutions = [[None] *(capacity+1)]*(num_assets + 1)
+        self.weights = self.gen_weights_array(min_order_percentage, network)
         self.results = self.build_attack(num_assets, capacity, network)
 
     # the cost of each assets min order size
-    def gen_weights_array(self, min_order_size, network):
+    def gen_weights_array(self, min_order_percentage, network):
         weights = {}
         for i, sym in self.id_to_sym.items():
             asset = network.assets[sym]
-            weights[i] = int(math.ceil(min_order_size * asset.daily_volume * asset.price))
+            weights[i] = int(math.ceil(min_order_percentage * asset.daily_volume * asset.price))
         return weights
 
 
@@ -50,11 +52,11 @@ class SingleAgentDynamicProgrammingSolver:
             self.solutions[n][c] = s
             return s
         else:
-            max_assets_orders = (int)(floor(c / self.weights[n]))
+            max_assets_orders = min(self.max_order_num, (int)(floor(c / self.weights[n])))
             max_result = self.build_attack(n - 1, c,  copy.deepcopy(network))
             for i in range(1, max_assets_orders+1):
                 prev_solution = self.build_attack(n - 1, c - i * self.weights[n], copy.deepcopy(network))
-                order = Sell(asset_sym, i*self.min_order_size*network.assets[asset_sym].daily_volume)
+                order = Sell(asset_sym, i * self.min_order_percentage * network.assets[asset_sym].daily_volume)
                 net2 = prev_solution.network
                 net2.submit_sell_orders([order])
                 net2.clear_order_book()
@@ -67,7 +69,7 @@ class SingleAgentDynamicProgrammingSolver:
             self.solutions[n][c] = max_result
             return max_result
 
-    def build_attack_rec_wrrong(self, n, c, network):
+    def build_attack_rec_wrong(self, n, c, network):
         if n == 0 or c == 0:
             s = Solution(network, [], 0)
             self.solutions[n][c] = s
@@ -84,7 +86,7 @@ class SingleAgentDynamicProgrammingSolver:
             max_result = self.build_attack(n - 1, c,  copy.deepcopy(network))
             prev_solutions[1] = self.build_attack(n - 1, c - self.weights[n], copy.deepcopy(network))
             prev_solutions[2] = self.build_attack(n, c - self.weights[n], copy.deepcopy(network))
-            order = Sell(asset_sym, self.min_order_size * network.assets[asset_sym].daily_volume)
+            order = Sell(asset_sym, self.min_order_percentage * network.assets[asset_sym].daily_volume)
             for i in range(1, 2):
                 net2 = prev_solutions[i].network
                 net2.submit_sell_orders([order])

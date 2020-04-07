@@ -179,8 +179,10 @@ class AssetFundsNetwork:
                 del self.sell_orders[order_key]
                 continue
             if self.limit_trade_step:
-                time_step = SysConfig.get('TIME_STEP_MS')
-                max_shares_to_trade = (self.assets[order_key].avg_minute_volume / MS_IN_MINUTE) * time_step
+                #time_step = SysConfig.get('TIME_STEP_SECS')
+                #max_shares_to_trade = (self.assets[order_key].avg_minute_volume / MS_IN_MINUTE) * time_step
+                max_shares_to_trade = SysConfig.get('TIME_STEP_MINUTES')\
+                                      *SysConfig.get('DAILY_PORTION_PER_MIN')*self.assets[order_key].daily_volume
                 shares_to_trade = min(abs(balance), max_shares_to_trade)
             else:
                 shares_to_trade = abs(balance)

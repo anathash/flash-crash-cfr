@@ -16,8 +16,8 @@ class Solution:
 
 
 class SingleAgentDynamicProgrammingSolver:
-    def __init__(self, network: AssetFundNetwork, capacity, min_order_percentage, max_order_percentage):
-        self.max_order_num =(int)(floor(max_order_percentage/min_order_percentage))
+    def __init__(self, network: AssetFundNetwork, capacity, min_order_percentage, max_order_num):
+        self.max_order_num = max_order_num #(int)(floor(max_order_percentage/min_order_percentage))
         self.min_order_percentage = min_order_percentage
         num_assets = len(network.assets)
         self.id_to_sym = {}

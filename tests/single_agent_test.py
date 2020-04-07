@@ -73,7 +73,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         f2 = MockFund(symbol='f2', my_asset=a2, margin_ratio=0.9)
         network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
-        solver = SingleAgentDynamicProgrammingSolver(network, 4, 0.5, 1)
+        solver = SingleAgentDynamicProgrammingSolver(network, 4, 0.5, 2)
         self.assertEqual(solver.results.value, 1)
         self.assertEqual(solver.results.actions[0], Sell('a2', 2))
 
@@ -96,7 +96,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
                                                      mi_calc=MockMarketImpactTestCalculator())
 
-        solver = SingleAgentDynamicProgrammingSolver(network, 4, 0.5, 1)
+        solver = SingleAgentDynamicProgrammingSolver(network, 4, 0.5, 2)
         self.assertEqual(solver.results.value, 1)
         self.assertEqual(solver.results.actions[0], Sell('a2', 2))
 

@@ -15,7 +15,8 @@ class GameConfig:
                  defender_max_assets_in_action=1,
                  defender_asset_slicing=20,
                  defender_initial_capital=6000000,
-                 impact_calc_constant=1.0536,
+                 #impact_calc_constant=1.0536,
+                 impact_calc_constant=0.33,
                  intraday_asset_gain_max_range=1.1,
                  attacker_max_sell_minute_volume_ratio = 2.0,
                  verbose=False):

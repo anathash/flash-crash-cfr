@@ -309,11 +309,11 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         self.assertTrue(exception)
 
     def test_simulate_trade_limit_trade_step(self):
-        a1 = AssetFundNetwork.Asset(price=1, daily_volume=23400, symbol='a1')
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=1000, symbol='a1')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1}, assets={'a1': a1},
                                                      mi_calc=MockMarketImpactTestCalculator())
-        SysConfig.set('TIME_STEP_MS',1000)
+        SysConfig.set('TIME_STEP_MINUTES',1)
         network.submit_buy_orders([Buy('a1',2)])
         network.simulate_trade()
         self.assertEqual(network.buy_orders['a1'],1)

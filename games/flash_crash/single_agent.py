@@ -1,4 +1,5 @@
 import copy
+import csv
 import math
 from math import floor
 
@@ -25,8 +26,9 @@ class SingleAgentDynamicProgrammingSolver:
         for sym in network.assets.keys():
             self.id_to_sym[i] = sym
             i += 1
-        self.solutions = [[None for x in range(capacity + 1)] for x in range(num_assets + 1)]
+        #self.solutions = [[None for x in range(capacity + 1)] for x in range(num_assets + 1)]
         #self.solutions = [[None] *(capacity+1)]*(num_assets + 1)
+        self.solutions = [{}]*(num_assets + 1)
         self.weights = self.gen_weights_array(min_order_percentage, network)
         self.results = self.build_attack(num_assets, capacity, network)
 
@@ -41,11 +43,11 @@ class SingleAgentDynamicProgrammingSolver:
 
     def build_attack(self, n, c, network):
         if n == 0 or c == 0:
-            s = Solution(network, [], 0)
+            s = Solution(network,  [], 0)
             self.solutions[n][c] = s
             return s
         asset_sym = self.id_to_sym[n]
-        if self.solutions[n][c]:
+        if c in self.solutions[n]:
             return self.solutions[n][c]
         elif self.weights[n] > c:
             s = self.build_attack(n-1, c, copy.deepcopy(network))
@@ -64,7 +66,7 @@ class SingleAgentDynamicProgrammingSolver:
                 if value > max_result.value:
                     actions = copy.copy(prev_solution.actions)
                     actions.append(order)
-                    max_result = Solution(net2, actions, value)
+                    max_result = Solution(net2,  actions, value)
 
             self.solutions[n][c] = max_result
             return max_result
@@ -99,6 +101,15 @@ class SingleAgentDynamicProgrammingSolver:
 
             self.solutions[n][c] = max_result
             return max_result
+
+    def store_solution(self, filename):
+        with open(filename, 'w', newline='') as csvfile:
+            fieldnames = ['budget', 'value', 'actions']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            max_solutions = self.solutions[len(self.solutions)-1]
+            for budget, solution in max_solutions.items():
+                writer.writerow({'budget': budget, 'value': str(solution.value),'actions': str(solution.actions)})
 
 
 def main():

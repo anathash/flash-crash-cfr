@@ -1,3 +1,4 @@
+import csv
 import unittest
 
 
@@ -42,13 +43,16 @@ class TestSingleAgentSolver  (unittest.TestCase):
 
 
     def test_1(self):
-        a1 = AssetFundNetwork.Asset(price=1, daily_volume=1, symbol='a1')
-        a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
+        a1 = AssetFundNetwork.Asset(price=10, daily_volume=1, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=20, daily_volume=1, symbol='a2')
         f1 = MockFund('f1', a1,1)
         f2 = MockFund('f2', a2,1)
         network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2}, assets={'a1':a1, 'a2':a2}, mi_calc=MockMarketImpactTestCalculator())
 
-        solver = SingleAgentDynamicProgrammingSolver(network, 4, 1, 1)
+        solver = SingleAgentDynamicProgrammingSolver(network, 40, 1, 1)
+        for solutions in solver.solutions:
+            self.assertEqual([40,30,20,10], list(solutions.keys()))
+
         self.assertEqual(solver.results.value, 2)
         self.assertEqual(solver.results.actions[0], Sell('a1', 1))
         self.assertEqual(solver.results.actions[1], Sell('a2', 1))
@@ -77,6 +81,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         self.assertEqual(solver.results.value, 1)
         self.assertEqual(solver.results.actions[0], Sell('a2', 2))
 
+
     def test_4(self):
         a1 = AssetFundNetwork.Asset(price=1, daily_volume=1, symbol='a1')
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
@@ -87,6 +92,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
         solver = SingleAgentDynamicProgrammingSolver(network, 4, 1, 1)
         self.assertEqual(solver.results.value, 2)
         self.assertEqual(solver.results.actions[0], Sell('a1', 1))
+
 
     def test_order_limited_by_parameter(self):
         a1 = AssetFundNetwork.Asset(price=1, daily_volume=1, symbol='a1')
@@ -107,12 +113,34 @@ class TestSingleAgentSolver  (unittest.TestCase):
         f1 = AssetFundNetwork.Fund('f1', {'a1':10}, {'a2':10}, 1000, 1, 1)
         f2 = AssetFundNetwork.Fund('f2', {'a2':10}, {'a3':10}, 1000, 1, 1)
 
-
         network = AssetFundNetwork.AssetFundsNetwork(funds = [f1, f2], assets=[a1, a2, a3])
 
         solver = SingleAgentDynamicProgrammingSolver(network, 10, 0.5)
         print(solver.results.value)
         print(solver.results.actions)
+
+    def test_store_file(self):
+        a1 = AssetFundNetwork.Asset(price=10, daily_volume=1, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=20, daily_volume=1, symbol='a2')
+        f1 = MockFund('f1', a1, 1)
+        f2 = MockFund('f2', a2, 1)
+        network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
+                                                     mi_calc=MockMarketImpactTestCalculator())
+
+        solver = SingleAgentDynamicProgrammingSolver(network, 40, 1, 1)
+        solver.store_solution('test_store_file.csv')
+        expected_rows = []
+        for budget in [40,30,20,10]:
+            expected_rows.append({'budget':str(budget), 'value':str(solver.solutions[2][budget].value),
+                                  'actions':str(solver.solutions[2][budget].actions)})
+        i =0
+        with open('test_store_file.csv', newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                self.assertEqual(dict(row), expected_rows[i])
+                i+=1
+
+
 
 if __name__ == '__main__':
     unittest.main()

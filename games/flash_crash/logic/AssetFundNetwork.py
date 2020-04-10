@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import csv
 import json
 import random
 from math import floor
@@ -30,9 +31,9 @@ class Asset:
     def set_price(self, new_price):
         self.price = new_price
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Asset) and self.price == other.price and self.daily_volume == other.daily_volume \
-               and self.volatility == other.volatility and self.symbol == other.symbol
+               and self.volatility == other.volatility and self.symbol == other.symbol and self.zero_time_price == other.zero_time_price
 
 
 class Fund:
@@ -116,6 +117,18 @@ class Fund:
 
     def marginal_call(self, assets):
         return self.compute_curr_leverage(assets) / self.initial_leverage > self.tolerance
+
+
+def read_assets_file(assets_file, num_assets):
+    assets = {}
+    with open(assets_file, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            symbol = row['symbol']
+            assets[symbol] = Asset(price=float(row['price']), daily_volume=float(row['volume']), symbol=symbol)
+            if len(assets) == num_assets:
+                return assets
+    return assets
 
 
 class AssetFundsNetwork:
@@ -226,6 +239,51 @@ class AssetFundsNetwork:
                 price_gain = random.uniform(1, intraday_asset_gain_max_range)
                 asset.set_price(asset.price * price_gain)
 
+
+
+    @classmethod
+    def gen_network_from_graph_with_assets(cls, g, investment_proportions,
+                               initial_capitals, initial_leverages, assets,
+                               tolerances,  mi_calc: MarketImpactCalculator):
+        funds = {}
+        fund_nodes, asset_nodes = nx.bipartite.sets(g)
+        num_funds = len(fund_nodes)
+        assets_list = list(assets.values())
+        for i in range(num_funds):
+            portfolio = {}
+            fund_symbol = 'f' + str(i)
+            investments = list(g.out_edges(i))
+            if investments:
+                fund_capital = initial_capitals[i] * (1 + initial_leverages[i])
+                for j in range(len(investments)):
+                    asset_index = investments[j][1] - num_funds
+                    asset = assets_list[asset_index]
+                    portfolio[asset.symbol] = floor(investment_proportions[fund_symbol][j] * fund_capital / asset.price)
+            funds[fund_symbol] = Fund(fund_symbol, portfolio, initial_capitals[i], initial_leverages[i], tolerances[i])
+        return cls(funds, assets, mi_calc)
+
+    @classmethod
+    def generate_random_funds_network(cls, density, num_funds, initial_capitals, initial_leverages,
+                                 tolerances, num_assets, assets_file, mi_calc: MarketImpactCalculator):
+        connected = False
+        while not connected:
+            g = nx.algorithms.bipartite.random_graph(num_funds, num_assets, density, directed=True)
+            connected = True
+            try:
+                fund_nodes, asset_nodes = nx.bipartite.sets(g)
+            except nx.AmbiguousSolution:
+                connected = False
+
+        investment_proportions = {}
+        for fund_node in list(fund_nodes):
+            fund_symbol = 'f' + str(fund_node)
+            investments = list(g.out_edges(fund_node))
+            rand = list(numpy.random.randint(1, 10, size=len(investments)))
+            rand_sum = sum(rand)
+            investment_proportions[fund_symbol] = [float(i) / rand_sum for i in rand]
+        assets = read_assets_file(assets_file, num_assets)
+        return cls.gen_network_from_graph_with_assets(g, investment_proportions, initial_capitals,
+                                          initial_leverages,assets, tolerances, mi_calc)
     @classmethod
     def generate_random_network(cls, density, num_funds, num_assets, initial_capitals, initial_leverages,
                                 assets_initial_prices, tolerances, assets_num_shares, volatility, mi_calc: MarketImpactCalculator):
@@ -275,6 +333,7 @@ class AssetFundsNetwork:
                     portfolio[asset_symbol] = floor(investment_proportions[fund_symbol][j] * fund_capital/asset.price)
             funds[fund_symbol] = Fund(fund_symbol, portfolio, initial_capitals[i], initial_leverages[i], tolerances[i])
         return cls(funds, assets, mi_calc)
+
 
 
     @classmethod

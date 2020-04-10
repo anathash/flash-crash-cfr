@@ -107,6 +107,44 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         self.assertEqual(prot1['a1'], 300)
         self.assertTrue('a0' not in prot1)
 
+
+    def test_gen_network_from_graph_with_assets(self):
+        num_funds = 2
+        assets= {'A1':Asset(price=1, daily_volume=3, symbol='A1', volatility=1.5),
+                 'A2': Asset(price=2, daily_volume=4, symbol='A2', volatility=1)}
+        initial_capitals = [100, 200]
+        initial_leverages = [1, 2]
+        tolerances = [4, 5]
+        investment_proportions = {'f0': [0.6, 0.4], 'f1': [1.0]}
+        g = nx.DiGraph()
+        g.add_nodes_from([0, 1, 2, 3])
+        g.add_edges_from([(0, 2), (0, 3), (1, 3)])
+        network = AssetFundsNetwork.gen_network_from_graph_with_assets(g=g, investment_proportions=investment_proportions,
+                                                           initial_capitals=initial_capitals,
+                                                           initial_leverages=initial_leverages,
+                                                           tolerances=tolerances,
+                                                           assets = assets,
+                                                           mi_calc=ExponentialMarketImpactCalculator(1))
+        assets = network.assets
+        funds = network.funds
+        self.assertEqual(len(assets), 2)
+        self.assertEqual(len(funds), num_funds)
+        self.assertTrue((network.assets, assets))
+        for i in range(len(funds)):
+            fund = funds['f' + str(i)]
+            self.assertEqual(initial_capitals[i], fund.initial_capital)
+            self.assertEqual(initial_leverages[i], fund.initial_leverage)
+            self.assertEqual(tolerances[i], fund.tolerance)
+        prot0 = funds['f0'].portfolio
+        self.assertEqual(len(prot0.items()), 2)
+        self.assertEqual(prot0['A1'], 120)
+        self.assertEqual(prot0['A2'], 40)
+
+        prot1 = funds['f1'].portfolio
+        self.assertEqual(len(prot1.items()), 1)
+        self.assertEqual(prot1['A2'], 300)
+        self.assertTrue('A1' not in prot1)
+
     def test_update_funds(self):
         assets = {'XXX': Asset(1, 20, 1.5, 'XXX'), 'YYY': Asset(1, 20, 1.5, 'yyy')}
         f1 = Fund('F1', {'XXX': 10, 'YYY': 10}, 5, 2, 0.25)
@@ -317,6 +355,21 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         network.submit_buy_orders([Buy('a1',2)])
         network.simulate_trade()
         self.assertEqual(network.buy_orders['a1'],1)
+
+    def test_read_two_assets_from_file(self):
+        assets = AssetFundNetwork.read_assets_file('assets.csv', 2)
+        expected_assets = {'A1':Asset( price=145.6, daily_volume=605.3, symbol='A1'),
+                           'A2': Asset(price=100, daily_volume=10, symbol='A2')}
+        self.assertEqual(len(assets), 2)
+        self.assertEqual(assets,expected_assets)
+
+    def test_read_all_assets_from_file(self):
+        assets = AssetFundNetwork.read_assets_file('assets.csv', 4)
+        expected_assets = {'A1':Asset( price=145.6, daily_volume=605.3, symbol='A1'),
+                           'A2': Asset(price=100, daily_volume=10, symbol='A2'),
+                           'A3': Asset(price=100, daily_volume=10, symbol='A3')}
+        self.assertEqual(len(assets), 3)
+        self.assertEqual(assets,expected_assets)
 
 if __name__ == '__main__':
     unittest.main()

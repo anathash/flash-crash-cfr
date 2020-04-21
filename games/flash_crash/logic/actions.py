@@ -1,15 +1,16 @@
 import itertools
+from math import floor
 
 from Orders import  Sell, Buy
 from SysConfig import SysConfig
 
 
 def gen_sell_order(asset, size):
-    return Sell(asset.symbol, size * asset.daily_volume)
+    return Sell(asset.symbol, int(floor(size * asset.daily_volume)))
 
 
 def gen_buy_order(asset, size):
-    return Buy(asset.symbol, size * asset.daily_volume)
+    return Buy(asset.symbol, int(floor(size * asset.daily_volume)))
 
 
 def get_single_orders(assets, gen_order_func):
@@ -22,7 +23,7 @@ def get_single_orders(assets, gen_order_func):
 
 def get_actions_in_budget(assets, single_asset_orders, asset_price_lambda, budget):
     actions = []
-
+    costs = {o.asset_symbol:asset_price_lambda(assets[o.asset_symbol])*o.num_shares for o in single_asset_orders}
     orders_in_budget = [o for o in single_asset_orders if
                         asset_price_lambda(assets[o.asset_symbol])*o.num_shares <= budget]
     for i in range(0, len(orders_in_budget)):

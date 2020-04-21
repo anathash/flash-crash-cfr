@@ -3,6 +3,7 @@ from typing import List
 
 class NoLimitOrder:
     def __init__(self, asset_symbol: str, num_shares: int):
+        assert(isinstance(num_shares, int))
         self.asset_symbol = asset_symbol
         self.num_shares = num_shares
 

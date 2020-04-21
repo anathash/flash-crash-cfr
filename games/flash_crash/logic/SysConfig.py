@@ -5,7 +5,7 @@ class SysConfig:
     __conf = {"MIN_ORDER_VALUE": 1000,
               "MINUTE_VOLUME_LIMIT": 0.09,
               "DENSITY": 0.5,
-              "STEP_ORDER_SIZE": 0.075,
+              "STEP_ORDER_SIZE": 0.0075,
               "MAX_NUM_ORDERS": 2,
               "TIME_STEP_MINUTES": 1,
               "DAILY_PORTION_PER_MIN": 0.001, # finish a 1.5% order in 15 minutes

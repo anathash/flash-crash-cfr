@@ -2,7 +2,7 @@
 import csv
 import json
 import random
-from math import floor
+from math import floor, ceil
 
 import networkx as nx
 import numpy
@@ -27,6 +27,8 @@ class Asset:
         self.avg_minute_volume = daily_volume/MINUTES_IN_TRADING_DAY
         self.symbol = symbol
         self.volatility = volatility
+        self.max_shares_to_trade_in_ts = ceil(SysConfig.get('TIME_STEP_MINUTES')\
+                                      *SysConfig.get('DAILY_PORTION_PER_MIN')*daily_volume)
 
     def set_price(self, new_price):
         self.price = new_price
@@ -46,6 +48,7 @@ class Fund:
         self.tolerance = tolerance
         self.is_liquidating = False
         self.is_in_default = False
+
 
     def __eq__(self, other):
         return isinstance(other, Fund) and \
@@ -141,9 +144,13 @@ class AssetFundsNetwork:
         self.assets = assets
         self.buy_orders = {}
         self.sell_orders = {}
-        if intraday_asset_gain_max_range:
-            self.run_intraday_simulation(intraday_asset_gain_max_range, 0.7)
+#        if intraday_asset_gain_max_range:
+#            self.run_intraday_simulation(intraday_asset_gain_max_range, 0.7)
         self.limit_trade_step = limit_trade_step
+        for f in self.funds.values():
+            assert(not f.is_in_margin_call())
+
+
 
     def __eq__(self, other):
         return isinstance(other, AssetFundsNetwork) and isinstance(other.mi_calc, type(self.mi_calc)) and \
@@ -178,6 +185,9 @@ class AssetFundsNetwork:
     def order_books_empty(self):
         return not (self.buy_orders or self.sell_orders)
 
+    def no_more_sell_orders(self):
+        return not (self.sell_orders)
+
     def simulate_trade(self):
         order_keys = set(self.sell_orders.keys())
         order_keys.update(self.buy_orders.keys())
@@ -192,10 +202,7 @@ class AssetFundsNetwork:
                 del self.sell_orders[order_key]
                 continue
             if self.limit_trade_step:
-                #time_step = SysConfig.get('TIME_STEP_SECS')
-                #max_shares_to_trade = (self.assets[order_key].avg_minute_volume / MS_IN_MINUTE) * time_step
-                max_shares_to_trade = SysConfig.get('TIME_STEP_MINUTES')\
-                                      *SysConfig.get('DAILY_PORTION_PER_MIN')*self.assets[order_key].daily_volume
+                max_shares_to_trade = self.assets[order_key].max_shares_to_trade_in_ts
                 shares_to_trade = min(abs(balance), max_shares_to_trade)
             else:
                 shares_to_trade = abs(balance)
@@ -255,11 +262,17 @@ class AssetFundsNetwork:
             investments = list(g.out_edges(i))
             if investments:
                 fund_capital = initial_capitals[i] * (1 + initial_leverages[i])
+                portfolio_value = 0
                 for j in range(len(investments)):
                     asset_index = investments[j][1] - num_funds
                     asset = assets_list[asset_index]
                     portfolio[asset.symbol] = floor(investment_proportions[fund_symbol][j] * fund_capital / asset.price)
+                    portfolio_asset_value = portfolio[asset.symbol] * asset.price
+                    portfolio_value+=portfolio_asset_value
             funds[fund_symbol] = Fund(fund_symbol, portfolio, initial_capitals[i], initial_leverages[i], tolerances[i])
+            #print(funds[fund_symbol].compute_portfolio_value(assets))
+            #print('')
+
         return cls(funds, assets, mi_calc)
 
     @classmethod
@@ -373,6 +386,13 @@ class AssetFundsNetwork:
         for fund in self.funds.values():
             if fund.marginal_call(self.assets):
                 fund_in_margin += 1
+        return fund_in_margin
+
+    def get_funds_in_margin_calls(self):
+        fund_in_margin = []
+        for fund in self.funds.values():
+            if fund.marginal_call(self.assets):
+                fund_in_margin.append(fund.symbol)
         return fund_in_margin
 
     def margin_calls(self):

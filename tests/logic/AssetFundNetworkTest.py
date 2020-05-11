@@ -371,5 +371,22 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         self.assertEqual(len(assets), 3)
         self.assertEqual(assets,expected_assets)
 
+    def test_reset_books(self):
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=1, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
+        f1 = Fund('f1', {'a1': 10}, 100, 1, 1)
+        f2 = Fund('f2', {'a2': 10}, 100, 1, 1)
+        network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
+                                                     mi_calc=MockMarketImpactTestCalculator(), limit_trade_step=True)
+        network.submit_buy_orders([Buy('a1', 2)])
+        network.submit_sell_orders([Sell('a1', 2)])
+        self.assertTrue(network.sell_orders)
+        self.assertTrue(network.buy_orders)
+        network.reset_order_books()
+        self.assertFalse(network.sell_orders)
+        self.assertFalse(network.buy_orders)
+
+
+
 if __name__ == '__main__':
     unittest.main()

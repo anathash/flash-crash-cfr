@@ -1,0 +1,5 @@
+budget,value,actions
+40,2,"[Sell a1 1, Sell a2 1]"
+30,0,[]
+20,1,[Sell a1 1]
+10,0,[]

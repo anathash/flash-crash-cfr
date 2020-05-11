@@ -145,7 +145,7 @@ class TestMinimax(unittest.TestCase):
                                                      limit_trade_step = True)
 
      #   value, actions, actual_tree = minimax(ROOT_ATTACKER, network, 205,190)
-        result = minimax2(ROOT_ATTACKER, network, 405,190)
+        result = minimax2(ROOT_ATTACKER, network, 405,190, True)
         expected_tree = self.gen_tree2()
 
         print(result.value)

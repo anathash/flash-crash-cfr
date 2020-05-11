@@ -1,11 +1,12 @@
+from math import floor
 from typing import List
 
 
 class NoLimitOrder:
-    def __init__(self, asset_symbol: str, num_shares: int):
-        assert(isinstance(num_shares, int))
+    def __init__(self, asset_symbol: str, num_shares: float):
+        int_num_shares = int(floor(num_shares))
         self.asset_symbol = asset_symbol
-        self.num_shares = num_shares
+        self.num_shares = int_num_shares
 
     def __eq__(self, other):
         return isinstance(other, NoLimitOrder) and \
@@ -22,7 +23,7 @@ class Buy(NoLimitOrder):
 
 
 class Sell(NoLimitOrder):
-    def __init__(self, asset_symbol: str, num_shares: int):
+    def __init__(self, asset_symbol: str, num_shares: float):
         super().__init__(asset_symbol, num_shares)
 
     def __repr__(self):

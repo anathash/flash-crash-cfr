@@ -41,6 +41,7 @@ class Asset:
 class Fund:
     def __init__(self, symbol, portfolio: Dict[str, int], initial_capital, initial_leverage, tolerance):
         self.symbol = symbol
+        self.leverage = initial_leverage
         self.portfolio = portfolio
         self.initial_leverage = initial_leverage
         self.initial_capital = initial_capital
@@ -55,6 +56,7 @@ class Fund:
                self.symbol == other.symbol and \
                self.portfolio == other.portfolio and \
                self.initial_leverage == other.initial_leverage and \
+               self.leverage == other.leverage and \
                self.initial_capital == other.initial_capital and \
                self.tolerance == other.tolerance and \
                self.loan == other.loan
@@ -116,7 +118,8 @@ class Fund:
         curr_capital = curr_portfolio_value - self.loan
         if curr_capital <= 0:
             return numpy.inf
-        return curr_portfolio_value / curr_capital - 1 #return self.compute_portfolio_value(assets) / self.capital - 1
+        self.leverage = curr_portfolio_value / curr_capital - 1 #return self.compute_portfolio_value(assets) / self.capital - 1
+        return self.leverage
 
     def marginal_call(self, assets):
         return self.compute_curr_leverage(assets) / self.initial_leverage > self.tolerance
@@ -150,14 +153,20 @@ class AssetFundsNetwork:
         for f in self.funds.values():
             assert(not f.is_in_margin_call())
 
-
-
     def __eq__(self, other):
         return isinstance(other, AssetFundsNetwork) and isinstance(other.mi_calc, type(self.mi_calc)) and \
                self.funds == other.funds and self.assets == other.assets
 
     def __repr__(self):
         return str(self.funds)
+
+    def reset_order_books(self):
+        self.buy_orders = {}
+        self.sell_orders = {}
+
+    def public_state(self):
+        return str({a.symbol:a.price for a in self.assets.values()})
+
 
     @staticmethod
     def submit_orders(orders, book):
@@ -202,8 +211,10 @@ class AssetFundsNetwork:
                 del self.sell_orders[order_key]
                 continue
             if self.limit_trade_step:
-                max_shares_to_trade = self.assets[order_key].max_shares_to_trade_in_ts
-                shares_to_trade = min(abs(balance), max_shares_to_trade)
+                max_shares_to_trade_in_ts = ceil(SysConfig.get('TIME_STEP_MINUTES')\
+                                      *SysConfig.get('DAILY_PORTION_PER_MIN')* self.assets[order_key].daily_volume)
+                #max_shares_to_trade = self.assets[order_key].max_shares_to_trade_in_ts
+                shares_to_trade = min(abs(balance), max_shares_to_trade_in_ts)
             else:
                 shares_to_trade = abs(balance)
 
@@ -396,7 +407,7 @@ class AssetFundsNetwork:
         return fund_in_margin
 
     def margin_calls(self):
-        for fund in self.funds:
+        for fund in self.funds.values():
             if fund.marginal_call(self.assets):
                 return True
         return False

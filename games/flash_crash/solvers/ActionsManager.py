@@ -21,17 +21,19 @@ class Attack:
 
 
 class ActionsManager:
-    def __init__(self, network: AssetFundNetwork):
-        self.__min_order_percentage = SysConfig.get('STEP_ORDER_SIZE')
+    def __init__(self, assets, step_order_size, max_order_num=1):
+        self.__step_order_size = step_order_size
+        self.__max_order_num = max_order_num
         self.__id_to_sym = {}
         i = 1
-        for sym in network.assets.keys():
+        for sym in assets.keys():
             self.__id_to_sym[i] = sym
             i += 1
-        self.__portfolios_dict = self.__get_portfolio_dict(network.assets)
+        self.__portfolios_dict = self.__get_portfolio_dict(assets)
         self.__sorted_keys = SortedKeyList(self.__portfolios_dict.keys())
-        self.__sell_all_assets = [Sell(a.symbol, self.__min_order_percentage * a.daily_volume)
-                                  for a in network.assets.values()]
+        self.__sell_all_assets = [Sell(a.symbol, self.__step_order_size * a.daily_volume)
+                                  for a in assets.values()]
+
 
     @staticmethod
     def __filter_from_history(action, history, key):
@@ -40,14 +42,6 @@ class ActionsManager:
             if asset in assets_in_limit:
                 return True
         return False
-
-    @staticmethod
-    def __get_single_orders(assets, gen_order_func):
-        orders = []
-        for asset in assets.values():
-            order = gen_order_func(asset, SysConfig.get('STEP_ORDER_SIZE'))
-            orders.append(order)
-        return orders
 
     @staticmethod
     def __gen_sell_order(asset, size):
@@ -74,6 +68,13 @@ class ActionsManager:
                     actions.append((orders_list, attack_cost))
         return actions
 
+    def __get_single_orders(self,assets, gen_order_func):
+        orders = []
+        for asset in assets.values():
+            order = gen_order_func(asset, self.__step_order_size)
+            orders.append(order)
+        return orders
+
     def __funds_under_risk(self, network: AssetFundNetwork):
         network.reset_order_books()
         network.submit_sell_orders(self.__sell_all_assets)
@@ -88,37 +89,54 @@ class ActionsManager:
         orders = []
         prev_orders = self.__get_all_attacks(assets, n - 1)
         orders.extend(prev_orders)
-        num_shares = int(self.__min_order_percentage * assets[asset_sym].daily_volume)
-        order = Sell(asset_sym, num_shares)
-        cost = asset.zero_time_price * num_shares
-        for action in prev_orders:
-            new_order = copy.copy(action.order_set)
-            new_order.append(order)
-            new_cost = cost + action.cost
-            orders.append(Attack(order_set=new_order, cost=new_cost))
+        for i in range(0, self.__max_order_num):
+            num_shares = int(self.__step_order_size * assets[asset_sym].daily_volume * (i + 1))
+            if not num_shares:
+                return orders
+            order = Sell(asset_sym, num_shares)
+            cost = asset.zero_time_price * num_shares
+            for action in prev_orders:
+                new_order = copy.copy(action.order_set)
+                new_order.append(order)
+                new_cost = cost + action.cost
+                orders.append(Attack(order_set=new_order, cost=new_cost))
         return orders
 
     def __get_portfolio_dict(self, assets):
-        portfolios = self.__get_all_attacks(assets, len(assets))
-        portfolios_dict = SortedDict({a.cost: a for a in portfolios})
+        attacks = self.__get_all_attacks(assets, len(assets))
+        portfolios_dict = {}
+        for attack in attacks:
+            if attack.cost not in portfolios_dict:
+                portfolios_dict[attack.cost] = []
+            portfolios_dict[attack.cost].append(attack)
         return portfolios_dict
 
-    def get_possible_attacks(self, budget, history):
-        attacks_costs_in_budget = self.__sorted_keys.irange_key(min_key=0, max_key=budget)
-        attacks_in_budget = [self.__portfolios_dict[cost] for cost in attacks_costs_in_budget]
-        attacks = [(attack.order_set, attack.cost) for attack in attacks_in_budget if
-                   not self.__filter_from_history(attack, history, SELL)]
-        return attacks
+    def get_possible_attacks(self, budget = None, history = []):
+        if budget:
+            attacks_costs_in_budget = self.__sorted_keys.irange_key(min_key=0, max_key=budget)
+            attacks_in_budget = [self.__portfolios_dict[cost] for cost in attacks_costs_in_budget]
+        else:
+            attacks_in_budget = self.__portfolios_dict.values()
+        attacks_in_budget_flat = [attack for attack_list in attacks_in_budget for attack in attack_list]
+        if history:
+            return [(attack.order_set, attack.cost) for attack in attacks_in_budget_flat
+                    if not self.__filter_from_history(attack, history, SELL)]
+        else:
+            return attacks_in_budget_flat
 
-    def get_possible_defenses(self, af_network, budget, history_assets_dict):
+    def get_possible_defenses(self, af_network, budget, history_assets_dict={}):
         funds_under_risk = self.__funds_under_risk(copy_network(af_network))
         asset_syms = set()
         for f in funds_under_risk:
             asset_syms.update(af_network.funds[f].portfolio.keys())
         assets = {sym: af_network.assets[sym] for sym in asset_syms}
         single_asset_defenses = self.__get_single_orders(assets, self.__gen_buy_order)
-        filtered_defenses = [d for d in single_asset_defenses if d.asset_symbol not in history_assets_dict[BUY]
-                             or history_assets_dict[BUY][d.asset_symbol] < MAX_ORDERS_PER_ASSETS]
+        if history_assets_dict:
+            filtered_defenses = [d for d in single_asset_defenses if d.asset_symbol not in history_assets_dict[BUY]
+                                 or history_assets_dict[BUY][d.asset_symbol] < MAX_ORDERS_PER_ASSETS]
+        else:
+            filtered_defenses = single_asset_defenses
         actions = self.__get_defenses_in_budget(assets, filtered_defenses, lambda a: a.price, budget)
         actions.append(([], 0))
         return actions
+

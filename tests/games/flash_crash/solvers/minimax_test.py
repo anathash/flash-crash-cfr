@@ -1,11 +1,12 @@
 import unittest
-
+from math import inf
 
 import AssetFundNetwork
 from SysConfig import SysConfig
 
 from constants import ATTACKER, MARKET, DEFENDER
-from solvers.minimax import minimax, MiniMaxTree, minimax2
+from solvers.ActionsManager import ActionsManager
+from solvers.minimax import minimax, MiniMaxTree, minimax2, alphabeta
 from mocks import MockFund, MockMarketImpactTestCalculator
 
 
@@ -30,6 +31,7 @@ class TestMinimax(unittest.TestCase):
         root = MiniMaxTree(ATTACKER)
         root.value = 0
         node1 = MiniMaxTree(MARKET, 0)
+        node11 = MiniMaxTree(MARKET, 0)
         node2 = MiniMaxTree(DEFENDER, 0)
         node3 = MiniMaxTree(ATTACKER, 0)
         node4 = MiniMaxTree(ATTACKER, -1)
@@ -44,6 +46,7 @@ class TestMinimax(unittest.TestCase):
         nope = '[]'
         market = 'MARKET'
         root.add_child(sell, node1)
+        root.add_child(nope, node11)
         node1.add_child(market, node2)
         node2.add_child(buy, node3)
         node2.add_child(nope, node4)
@@ -121,15 +124,16 @@ class TestMinimax(unittest.TestCase):
                                                      limit_trade_step = True)
 
      #   value, actions, actual_tree = minimax(ROOT_ATTACKER, network, 205,190)
-        result = minimax(ATTACKER, network, 205,190, True)
+        actions_mgr = ActionsManager(network.assets, 2 / 390, 1)
+        result = minimax(actions_mgr, ATTACKER, network, 205,190, True)
         expected_tree = self.gen_tree()
 
         print(result.value)
         print(result.actions)
         self.compare_trees(result.tree, expected_tree)
-        self.assertEqual(int(result.network.assets['a1'].price),99)
+        self.assertEqual(int(result.network.assets['a1'].price),100)
 
-    def test_minimax2(self):
+    def run_one_time_attack_tree_test(self, pruning = False):
         a1 = AssetFundNetwork.Asset(price=100, daily_volume=390, symbol='a1')
         a2 = AssetFundNetwork.Asset(price=100, daily_volume=390, symbol='a2')
         f1 = MockFund('f1', a1, 0.82)
@@ -145,7 +149,11 @@ class TestMinimax(unittest.TestCase):
                                                      limit_trade_step = True)
 
      #   value, actions, actual_tree = minimax(ROOT_ATTACKER, network, 205,190)
-        result = minimax2(ATTACKER, network, 405,190, True)
+        actions_mgr = ActionsManager(network.assets,2/390, 1)
+        if pruning:
+            result = alphabeta(actions_mgr, ATTACKER, network, 405, 190, (-inf, inf), (inf, inf), True)
+        else:
+            result = minimax2(actions_mgr, ATTACKER, network, 405,190, True)
         expected_tree = self.gen_tree2()
 
         print(result.value)
@@ -153,6 +161,14 @@ class TestMinimax(unittest.TestCase):
         self.compare_trees(result.tree, expected_tree)
         self.assertEqual(int(result.network.assets['a1'].price),81)
         self.assertEqual(int(result.network.assets['a2'].price),99)
+        self.assertEqual(int(network.assets['a1'].price),100)
+        self.assertEqual(int(network.assets['a2'].price),100)
+
+    def test_minimax2(self):
+        self.run_one_time_attack_tree_test(pruning=False)
+
+    def test_alpha_beta(self):
+        self.run_one_time_attack_tree_test(pruning=True)
 
 if __name__ == '__main__':
     unittest.main()

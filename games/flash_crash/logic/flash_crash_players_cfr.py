@@ -4,6 +4,7 @@ import itertools
 from AssetFundNetwork import AssetFundsNetwork
 import random
 
+from SysConfig import SysConfig
 from constants import ATTACKER, CHANCE, DEFENDER, MARKET, BUY, SELL
 from games.bases import GameStateBase
 from solvers.ActionsManager import ActionsManager
@@ -23,7 +24,7 @@ class FlashCrashRootChanceGameState(GameStateBase):
         super().__init__(parent=None, to_move=CHANCE, actions =[str(x) for x in attacker_budgets])
         self.children = {
             str(budget): AttackerMoveGameState(
-                self,  ActionsManager(af_network), ATTACKER,  {BUY:{},SELL:{}},
+                self,  ActionsManager(af_network.assets, SysConfig.get("STEP_ORDER_SIZE"), 1), ATTACKER,  {BUY:{},SELL:{}},
                 Budget(attacker=budget,defender=defender_budget),af_network,{BUY:[],SELL:[]}
             ) for budget in attacker_budgets
         }

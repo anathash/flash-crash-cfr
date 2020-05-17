@@ -1,11 +1,10 @@
 import copy
-from math import inf
 
 from AssetFundNetwork import AssetFundsNetwork
 from SysConfig import SysConfig
 from actions import get_possible_attacks, get_possible_defenses
 from constants import ATTACKER, DEFENDER, MARKET
-from solvers.single_agent_solver import SingleAgentESSolver
+from solvers.ActionsManager import ActionsManager
 
 
 class Result:
@@ -29,7 +28,6 @@ class MiniMaxTree:
         self.children = {}
         self.value = value
 
-
     def add_child(self, action, sub_tree):
         self.children[action] = sub_tree
 
@@ -45,42 +43,39 @@ def append_actions(order_set,future_actions ):
     best_actions.extend(future_actions)
     return best_actions
 
-def minimax2(turn, network: AssetFundsNetwork, attacker_budget, defender_budget, include_opt_out = True):
+
+def minimax2(actions_mgr, turn, network: AssetFundsNetwork, attacker_budget, defender_budget, include_opt_out = True):
  #   print(turn + ' Defender:' + str(defender_budget) + ' Attacker' + str(attacker_budget))
     best_result = None
     node = MiniMaxTree(turn)
     if turn == ATTACKER:
-        order_size = SysConfig.get("STEP_ORDER_SIZE")
-        max_num_orders = SysConfig.get("MAX_NUM_ORDERS")
-        es_solver = SingleAgentESSolver(network, order_size, max_num_orders)
-        portfolios = es_solver.get_attacks_in_budget(attacker_budget, include_opt_out)
-        #value = inf
+#        order_size = SysConfig.get("STEP_ORDER_SIZE")
+#        max_num_orders = SysConfig.get("MAX_NUM_ORDERS")
+#        actions_mgr = ActionsManager(order_size, max_num_orders)
+#        es_solver = SingleAgentESSolver(network, order_size, max_num_orders)
+ #       portfolios = es_solver.get_attacks_in_budget(attacker_budget, include_opt_out)
+        attacks = actions_mgr.get_possible_attacks(attacker_budget)
         i = -1
-        for (order_set, cost) in portfolios:
+        for attack in attacks:
             i+=1
             net2 = copy.deepcopy(network)
-            net2.submit_sell_orders(order_set)
-            child_result= minimax2(MARKET,net2,attacker_budget - cost, defender_budget)
-            node.add_child(str(order_set), child_result.tree)
-            total_cost = child_result.attacker_cost + cost
+            net2.submit_sell_orders(attack.order_set)
+            child_result= minimax2(actions_mgr, MARKET,net2,attacker_budget - attack.cost, defender_budget)
+            node.add_child(str(attack.order_set), child_result.tree)
+            total_cost = child_result.attacker_cost + attack.cost
             if not best_result or child_result.value < best_result.value or (child_result.value == best_result.value and
                                                                              total_cost < best_result.attacker_cost):
-                best_result = Result(funds=child_result.funds,node=node, order_set=order_set,
+                best_result = Result(funds=child_result.funds,node=node, order_set=attack.order_set,
                                      future_actions=child_result.actions, network=child_result.network,
                                      attacker_cost = total_cost,
                                      defender_cost = child_result.defender_cost)
         return best_result
     elif turn == DEFENDER:
-        net2 = copy.deepcopy(network)
-        net2.simulate_trade()
-        if net2.count_margin_calls() ==0:
-            actions =[([], 0)]
-        else:
-            actions = get_possible_defenses(network, defender_budget)
+        actions = actions_mgr.get_possible_defenses(network, defender_budget)
         for (order_set, cost) in actions:
             net2 = copy.deepcopy(network)
             net2.submit_buy_orders(order_set)
-            child_result = minimax2(MARKET,net2,attacker_budget, defender_budget - cost)
+            child_result = minimax2(actions_mgr, MARKET,net2,attacker_budget, defender_budget - cost)
             node.add_child(str(order_set), child_result.tree)
             total_cost = child_result.defender_cost + cost
             if not best_result or child_result.value > best_result.value  or (child_result.value == best_result.value and
@@ -92,59 +87,63 @@ def minimax2(turn, network: AssetFundsNetwork, attacker_budget, defender_budget,
 
         return best_result
     else: #MARKET
-        network.simulate_trade()
-        funds = network.get_funds_in_margin_calls()
-        if network.no_more_sell_orders():
+        net2 = copy.deepcopy(network)
+        net2.simulate_trade()
+        funds = net2.get_funds_in_margin_calls()
+        if net2.no_more_sell_orders():
             return Result(funds=funds, node=node, order_set=['MARKET'],
-                                     future_actions=[], network=network,
+                                     future_actions=[], network=net2,
                                      attacker_cost=0,
                                      defender_cost=0)
 
-        child_result  = minimax2(DEFENDER,network,attacker_budget, defender_budget)
+        child_result  = minimax2(actions_mgr, DEFENDER,net2,attacker_budget, defender_budget)
         node.add_child('MARKET', child_result.tree)
         return Result(funds=child_result.funds,node=node, order_set=['MARKET'],
                                      future_actions=child_result.actions, network=child_result.network,
                       attacker_cost=child_result.attacker_cost, defender_cost=child_result.defender_cost)
 
 
-def alphabeta(turn, network: AssetFundsNetwork, attacker_budget, defender_budget, alpha, beta, include_opt_out=True):
+def alphabeta(actions_mgr, turn, network: AssetFundsNetwork, attacker_budget, defender_budget, alpha, beta, include_opt_out=True):
     #   print(turn + ' Defender:' + str(defender_budget) + ' Attacker' + str(attacker_budget))
     best_result = None
     node = MiniMaxTree(turn)
     if turn == ATTACKER:
-        order_size = SysConfig.get("STEP_ORDER_SIZE")
-        max_num_orders = SysConfig.get("MAX_NUM_ORDERS")
-        es_solver = SingleAgentESSolver(network, order_size, max_num_orders)
-        portfolios = es_solver.get_attacks_in_budget(attacker_budget, include_opt_out)
+#        order_size = SysConfig.get("STEP_ORDER_SIZE")
+#        max_num_orders = SysConfig.get("MAX_NUM_ORDERS")
+#        es_solver = SingleAgentESSolver(network, order_size, max_num_orders)
+#        portfolios = es_solver.get_attacks_in_budget(attacker_budget, include_opt_out)
+#        actions_mgr = ActionsManager(order_size, max_num_orders)
+        attacks = actions_mgr.get_possible_attacks(attacker_budget)
+
         # value = inf
         i = -1
-        for (order_set, cost) in portfolios:
+        for attack in attacks:
             i += 1
             net2 = copy.deepcopy(network)
-            net2.submit_sell_orders(order_set)
-            child_result = alphabeta(MARKET, net2, attacker_budget - cost, defender_budget, alpha, beta)
-            node.add_child(str(order_set), child_result.tree)
-            total_cost = child_result.attacker_cost + cost
+            net2.submit_sell_orders(attack.order_set)
+            child_result = alphabeta(actions_mgr, MARKET, net2, attacker_budget - attack.cost, defender_budget, alpha, beta)
+            node.add_child(str(attack.order_set), child_result.tree)
+            total_cost = child_result.attacker_cost + attack.cost
             if child_result.value < beta[0] or (child_result.value == beta[0] and total_cost < beta[1]):
                 beta = (child_result.value, total_cost)
             if not best_result or child_result.value < best_result.value or (child_result.value == best_result.value and
                                                                              total_cost < best_result.attacker_cost):
-                best_result = Result(funds=child_result.funds, node=node, order_set=order_set,
+                best_result = Result(funds=child_result.funds, node=node, order_set=attack.order_set,
                                      future_actions=child_result.actions, network=child_result.network,
                                      attacker_cost=total_cost,
                                      defender_cost=child_result.defender_cost)
         return best_result
     elif turn == DEFENDER:
-        net2 = copy.deepcopy(network)
-        net2.simulate_trade()
-        if net2.count_margin_calls() == 0:
-            actions = [([], 0)]
-        else:
-            actions = get_possible_defenses(network, defender_budget)
+        # net2 = copy.deepcopy(network)
+        # net2.simulate_trade()
+        # if net2.count_margin_calls() == 0:
+        #     actions = [([], 0)]
+        # else:
+        actions = actions_mgr.get_possible_defenses(network, defender_budget)
         for (order_set, cost) in actions:
             net2 = copy.deepcopy(network)
             net2.submit_buy_orders(order_set)
-            child_result = minimax2(MARKET, net2, attacker_budget, defender_budget - cost)
+            child_result = alphabeta(actions_mgr, MARKET, net2, attacker_budget, defender_budget - cost, alpha, beta)
             node.add_child(str(order_set), child_result.tree)
             total_cost = child_result.defender_cost + cost
             if child_result.value >= alpha[0]:
@@ -162,38 +161,38 @@ def alphabeta(turn, network: AssetFundsNetwork, attacker_budget, defender_budget
 
         return best_result
     else:  # MARKET
-        network.simulate_trade()
-        funds = network.get_funds_in_margin_calls()
-        if network.no_more_sell_orders():
+        net2 = copy.deepcopy(network)
+        net2.simulate_trade()
+        funds = net2.get_funds_in_margin_calls()
+        if net2.no_more_sell_orders():
             return Result(funds=funds, node=node, order_set=['MARKET'],
-                          future_actions=[], network=network,
+                          future_actions=[], network=net2,
                           attacker_cost=0,
                           defender_cost=0)
 
-        child_result = alphabeta(DEFENDER, network, attacker_budget, defender_budget, alpha, beta)
+        child_result = alphabeta(actions_mgr, DEFENDER, net2, attacker_budget, defender_budget, alpha, beta)
         node.add_child('MARKET', child_result.tree)
         return Result(funds=child_result.funds, node=node, order_set=['MARKET'],
                       future_actions=child_result.actions, network=child_result.network,
                       attacker_cost=child_result.attacker_cost, defender_cost=child_result.defender_cost)
 
-def minimax(turn, network: AssetFundsNetwork, attacker_budget, defender_budget, root_attacker = False):
+def minimax(actions_mgr, turn, network: AssetFundsNetwork, attacker_budget, defender_budget, root_attacker = False):
    # print(turn + ' Defender:' + str(defender_budget) + ' Attacker ' + str(attacker_budget))
     best_result = None
     node = MiniMaxTree(turn)
     if turn == ATTACKER:
-#        actions = [([],0)]
-#        actions.extend(get_possible_attacks(network, attacker_budget,root_attacker))
-        actions = get_possible_attacks(network, attacker_budget,root_attacker)
+        attacks = actions_mgr.get_possible_attacks(attacker_budget)
+#        actions = get_possible_attacks(network, attacker_budget,root_attacker)
         #value = inf
-        for (order_set, cost) in actions:
+        for attack in attacks:
             net2 = copy.deepcopy(network)
-            net2.submit_sell_orders(order_set)
-            child_result= minimax(MARKET,net2,attacker_budget - cost, defender_budget)
-            node.add_child(str(order_set), child_result.tree)
-            total_cost = child_result.attacker_cost+cost
+            net2.submit_sell_orders(attack.order_set)
+            child_result= minimax(actions_mgr, MARKET,net2,attacker_budget - attack.cost, defender_budget)
+            node.add_child(str(attack.order_set), child_result.tree)
+            total_cost = child_result.attacker_cost+attack.cost
             if not best_result or child_result.value < best_result.value or (child_result.value == best_result.value and
                                                                              total_cost < best_result.attacker_cost):
-                best_result = Result(funds=child_result.funds,node=node, order_set=order_set,
+                best_result = Result(funds=child_result.funds,node=node, order_set=attack.order_set,
                                      future_actions=child_result.actions, network=child_result.network,
                                      attacker_cost = total_cost,
                                      defender_cost = child_result.defender_cost)
@@ -202,11 +201,12 @@ def minimax(turn, network: AssetFundsNetwork, attacker_budget, defender_budget, 
         net2 = copy.deepcopy(network)
         net2.simulate_trade()
         if not net2.count_margin_calls() ==0:
-            actions = get_possible_defenses(network, defender_budget)
+            #actions = get_possible_defenses(network, defender_budget)
+            actions = actions_mgr.get_possible_defenses(network, defender_budget)
         for (order_set, cost) in actions:
             net2 = copy.deepcopy(network)
             net2.submit_buy_orders(order_set)
-            child_result = minimax(ATTACKER,net2,attacker_budget, defender_budget - cost)
+            child_result = minimax(actions_mgr, ATTACKER,net2,attacker_budget, defender_budget - cost)
             node.add_child(str(order_set), child_result.tree)
             total_cost = child_result.defender_cost + cost
             if not best_result or child_result.value > best_result.value or (child_result.value == best_result.value and
@@ -218,14 +218,15 @@ def minimax(turn, network: AssetFundsNetwork, attacker_budget, defender_budget, 
 
         return best_result
     else: #MARKET
-        network.simulate_trade()
-        funds = network.get_funds_in_margin_calls()
-        if len(funds) or network.no_more_sell_orders():
+        net2 = copy.deepcopy(network)
+        net2.simulate_trade()
+        funds = net2.get_funds_in_margin_calls()
+        if len(funds) or net2.no_more_sell_orders():
             return Result(funds=funds, node=node, order_set=['MARKET'],
-                                     future_actions=[], network=network,
+                                     future_actions=[], network=net2,
                                      attacker_cost=0,
                                      defender_cost=0)
-        child_result  = minimax(DEFENDER,network,attacker_budget, defender_budget)
+        child_result  = minimax(actions_mgr, DEFENDER,net2,attacker_budget, defender_budget)
         node.add_child('MARKET', child_result.tree)
         return Result(funds=child_result.funds,node=node, order_set=['MARKET'],
                                      future_actions=child_result.actions, network=child_result.network,

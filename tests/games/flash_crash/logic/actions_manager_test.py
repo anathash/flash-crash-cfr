@@ -1,12 +1,9 @@
 import unittest
 from unittest.mock import MagicMock
 
-from sortedcontainers import SortedDict
-
 import AssetFundNetwork
 from AssetFundNetwork import Asset, Fund
 from Orders import Sell,  Buy
-from SysConfig import SysConfig
 from constants import BUY, SELL
 from mocks import  MockMarketImpactTestCalculator
 from solvers.ActionsManager import Attack, ActionsManager
@@ -27,11 +24,11 @@ class TestActionsManager  (unittest.TestCase):
 
     def test_get_single_orders(self):
         assets = {'a1':Asset(10,100,'a1'), 'a2':Asset(20, 200,'a2')}
-        SysConfig.set('STEP_ORDER_SIZE', 0.1)
         expected_sell_orders = [Sell('a1',10), Sell('a2',20)]
         expected_buy_orders = [Buy('a1',10), Buy('a2',20)]
-        actual_buy_orders = ActionsManager._ActionsManager__get_single_orders(assets, ActionsManager._ActionsManager__gen_buy_order)
-        actual_sell_orders = ActionsManager._ActionsManager__get_single_orders(assets, ActionsManager._ActionsManager__gen_sell_order)
+        actions_mgr = ActionsManager(assets, 0.1)
+        actual_buy_orders = actions_mgr._ActionsManager__get_single_orders(assets, ActionsManager._ActionsManager__gen_buy_order)
+        actual_sell_orders = actions_mgr._ActionsManager__get_single_orders(assets, ActionsManager._ActionsManager__gen_sell_order)
         self.assertListEqual(expected_sell_orders, actual_sell_orders)
         self.assertListEqual(expected_buy_orders, actual_buy_orders)
 
@@ -40,14 +37,13 @@ class TestActionsManager  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
         f1 = Fund('f1', {'a1': 10, 'a2': 10, 'a3': 10}, 100, 1, 1)
         f2 = Fund('f2', {'a1': 10}, 100, 1, 1)
-        SysConfig.set("STEP_ORDER_SIZE", 0.1)
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
                                                      mi_calc=MockMarketImpactTestCalculator())
         network.reset_order_books = MagicMock()
         network.simulate_trade = MagicMock()
         network.submit_sell_orders = MagicMock()
         network.get_funds_in_margin_calls = MagicMock(return_value = ['f1'])
-        actions_mgr = ActionsManager(network)
+        actions_mgr = ActionsManager(network.assets, 0.1)
         actual_funds = actions_mgr._ActionsManager__funds_under_risk(network)
         self.assertListEqual(actual_funds,['f1'])
         network.reset_order_books.assert_called_once()
@@ -76,11 +72,10 @@ class TestActionsManager  (unittest.TestCase):
         a4 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a4')
         f1 = Fund('f1', {'a1': 10, 'a2': 10, 'a3':10}, 100, 1, 1)
         f2 = Fund('f2', {'a4': 10}, 100, 1, 1)
-        SysConfig.set("STEP_ORDER_SIZE", 0.1)
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2},
                                                      assets={'a1': a1, 'a2': a2, 'a3': a3, 'a4': a4},
                                                      mi_calc=MockMarketImpactTestCalculator())
-        actions_mgr = ActionsManager(network)
+        actions_mgr = ActionsManager(network.assets, 0.1)
         history = {BUY:{'a1':2}, SELL:{'a1':1, 'a2':2}}
         budget = 20
         actions_mgr._ActionsManager__funds_under_risk = MagicMock(return_value=['f1'])
@@ -95,11 +90,10 @@ class TestActionsManager  (unittest.TestCase):
         a4 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a4')
         f1 = Fund('f1', {'a1': 10, 'a2': 10, 'a3':10}, 100, 1, 1)
         f2 = Fund('f2', {'a4': 10}, 100, 1, 1)
-        SysConfig.set("STEP_ORDER_SIZE", 0.1)
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2},
                                                      assets={'a1': a1, 'a2': a2, 'a3': a3, 'a4': a4},
                                                      mi_calc=MockMarketImpactTestCalculator())
-        actions_mgr = ActionsManager(network)
+        actions_mgr = ActionsManager(network.assets, 0.1)
         actions_mgr.funds_under_risk = MagicMock(return_value=['f1'])
         actions_mgr.get_single_orders = MagicMock(return_value=[Buy('a1', 10),
                                                                 Buy('a2', 10),
@@ -119,32 +113,24 @@ class TestActionsManager  (unittest.TestCase):
     def test_get_portfolio_dict(self):
         a1 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=100, symbol='a2')
-        a3 = AssetFundNetwork.Asset(price=3, daily_volume=100, symbol='a3')
+        a3 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a3')
         a4 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a4')
         assets = {'a1': a1, 'a2': a2, 'a3': a3, 'a4': a4}
-        f1 = Fund('f1', {'a1': 10, 'a2': 10, 'a3':10}, 100, 1, 1)
-        f2 = Fund('f2', {'a4': 10}, 100, 1, 1)
-        SysConfig.set("STEP_ORDER_SIZE", 0.1)
-        network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2},
-                                                     assets=assets,
-                                                     mi_calc=MockMarketImpactTestCalculator())
-        actions_mgr = ActionsManager(network)
+        actions_mgr = ActionsManager(assets, 0.1)
         attack1 = Attack([Sell('a1', 10)], 10)
-        attack2 = Attack([Sell('a1',10),Sell('a2',10)],40)
-        actions_mgr._ActionsManager__get_all_attacks = MagicMock(return_value = [attack1,attack2])
-        expected_dict = {10:attack1, 40: attack2}
+        attack2 = Attack([Sell('a1', 10),Sell('a2',10)],40)
+        attack3 = Attack([Sell('a3', 10)], 10)
+        actions_mgr._ActionsManager__get_all_attacks = MagicMock(return_value=[attack1, attack2, attack3])
+        expected_dict = {10: [attack1, attack3], 40: [attack2]}
         actual_dict = dict(actions_mgr._ActionsManager__get_portfolio_dict(assets))
         self.assertDictEqual(expected_dict,actual_dict)
-        actions_mgr._ActionsManager__get_all_attacks.assert_called_once_with(assets,4)
+        actions_mgr._ActionsManager__get_all_attacks.assert_called_once_with(assets, 4)
 
     def test_get_all_attacks(self):
         a1 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
         a3 = AssetFundNetwork.Asset(price=3, daily_volume=300, symbol='a3')
         assets = {'a1': a1, 'a2': a2, 'a3': a3}
-        f1 = Fund('f1', {'a1': 10, 'a2': 10}, 100, 1, 1)
-        f2 = Fund('f2', {'a2': 10}, 100, 1, 1)
-        SysConfig.set("STEP_ORDER_SIZE", 0.1)
         expected_attacks = [Attack([Sell('a1', 10)],10),
                             Attack([Sell('a2', 20)],40),
                             Attack([Sell('a3', 30)], 90),
@@ -154,10 +140,7 @@ class TestActionsManager  (unittest.TestCase):
                             Attack([Sell('a1', 10), Sell('a2', 20), Buy('a3', 30)], 140),
                             Attack([],0)
                             ]
-        network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2},
-                                                     assets=assets,
-                                                     mi_calc=MockMarketImpactTestCalculator())
-        mgr = ActionsManager(network)
+        mgr = ActionsManager(assets, 0.1)
         actual_attacks = mgr._ActionsManager__get_all_attacks(assets, 3)
         actual_attacks.sort(key=lambda a: a.cost)
         expected_attacks.sort(key=lambda a: a.cost)
@@ -168,23 +151,17 @@ class TestActionsManager  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
         a3 = AssetFundNetwork.Asset(price=3, daily_volume=300, symbol='a3')
         assets = {'a1': a1, 'a2': a2, 'a3': a3}
-        f1 = Fund('f1', {'a1': 10, 'a2': 10}, 100, 1, 1)
-        f2 = Fund('f2', {'a2': 10}, 100, 1, 1)
-        SysConfig.set("STEP_ORDER_SIZE", 0.1)
-        network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2},
-                                                     assets=assets,
-                                                     mi_calc=MockMarketImpactTestCalculator())
-        mgr = ActionsManager(network)
-        sell_all_assets = [Sell('a1',10),Sell('a2',20),Sell('a3',30)]
-        portfolio_dict = {  10:Attack([Sell('a1', 10)],10),
-                            40: Attack([Sell('a2', 20)],40),
-                            90: Attack([Sell('a3', 30)], 90),
-                            50: Attack([Sell('a1', 10), Buy('a2', 20)], 50),
-                            100: Attack([Sell('a1', 10), Buy('a3', 30)], 100),
-                            130: Attack([Sell('a2', 20), Buy('a3', 30)], 130),
-                            140: Attack([Sell('a1', 10), Sell('a2', 20), Buy('a3', 30)], 140),
-                            0: Attack([],0)}
-        self.assertEqual(mgr._ActionsManager__min_order_percentage, 0.1)
+        mgr = ActionsManager(assets, 0.1)
+        sell_all_assets = [Sell('a1', 10),Sell('a2',20),Sell('a3',30)]
+        portfolio_dict = {  10:[Attack([Sell('a1', 10)],10)],
+                            40: [Attack([Sell('a2', 20)],40)],
+                            90: [Attack([Sell('a3', 30)], 90)],
+                            50: [Attack([Sell('a1', 10), Buy('a2', 20)], 50)],
+                            100: [Attack([Sell('a1', 10), Buy('a3', 30)], 100)],
+                            130: [Attack([Sell('a2', 20), Buy('a3', 30)], 130)],
+                            140: [Attack([Sell('a1', 10), Sell('a2', 20), Buy('a3', 30)], 140)],
+                            0: [Attack([],0)]}
+        self.assertEqual(mgr._ActionsManager__step_order_size, 0.1)
         self.assertDictEqual({1:'a1',2:'a2',3:'a3'}, mgr._ActionsManager__id_to_sym)
         self.assertDictEqual(portfolio_dict, mgr._ActionsManager__portfolios_dict)
         self.assertListEqual([0, 10, 40, 50, 90, 100, 130, 140], list(mgr._ActionsManager__sorted_keys))
@@ -195,13 +172,7 @@ class TestActionsManager  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
         a3 = AssetFundNetwork.Asset(price=3, daily_volume=300, symbol='a3')
         assets = {'a1': a1, 'a2': a2, 'a3': a3}
-        f1 = Fund('f1', {'a1': 10, 'a2': 10}, 100, 1, 1)
-        f2 = Fund('f2', {'a2': 10}, 100, 1, 1)
-        SysConfig.set("STEP_ORDER_SIZE", 0.1)
-        network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2},
-                                                     assets=assets,
-                                                     mi_calc=MockMarketImpactTestCalculator())
-        mgr = ActionsManager(network)
+        mgr = ActionsManager(assets, 0.1)
         history = {BUY:{'a1':2},SELL:{'a1':1,'a2':2}}
         expected_attacks = [([Sell('a1', 10)], 10),
                             ([Sell('a3', 30)], 90),

@@ -6,6 +6,7 @@ from numpy import sort
 
 import AssetFundNetwork
 from Orders import Sell
+from solvers.ActionsManager import ActionsManager
 from solvers.common import Solution
 
 
@@ -20,6 +21,7 @@ class SingleAgentESSolver:
             i += 1
         self.solutions = {}
         self.network = network
+        self.action_mgr = ActionsManager(self.network.assets, self.min_order_percentage, self.max_order_num)
 
     def gen_attacks(self,network):
         self.attack(len(network.assets), network, [])
@@ -50,21 +52,22 @@ class SingleAgentESSolver:
 
     def gen_optimal_attacks(self):
         solutions = {}
-        portfolios = self.get_all_attack_portfolios(self.network.assets, len(self.network.assets))
-        for (orders_list, cost) in portfolios:
+#        portfolios = self.get_all_attack_portfolios(self.network.assets, len(self.network.assets))
+        attacks = self.action_mgr.get_possible_attacks()
+        for attack in attacks:
             net2 = copy.deepcopy(self.network)
-            net2.submit_sell_orders(orders_list)
+            net2.submit_sell_orders(attack.order_set)
             net2.clear_order_book()
             funds = net2.get_funds_in_margin_calls()
             value = len(funds)
             for i in range(1, value + 1):
-                if i not in solutions or cost <= solutions[i].cost:
-                    solutions[i] = Solution(self.network, orders_list, value, funds, cost)
+                if i not in solutions or attack.cost <= solutions[i].cost:
+                    solutions[i] = Solution(self.network, attack.order_set, value, funds, attack.cost)
         return solutions
 
     def get_attacks_in_budget(self, budget, include_opt_out):
-        portfolios = self.get_all_attack_portfolios(self.network.assets, len(self.network.assets))
-        return [x for x in portfolios if x[1] <= budget and (include_opt_out or x[1] > 0)]
+        attacks = self.action_mgr.get_possible_attacks(budget)
+        return [(x.order_set, x.cost) for x in attacks if x.cost <= budget and (include_opt_out or x.cost > 0)]
 
 
     def get_all_attack_portfolios2(self, n, assets, budget, order_set):
@@ -82,21 +85,21 @@ class SingleAgentESSolver:
             prev = self.get_all_attack_portfolios(n-1, assets, budget - cost, order_set)
 
 
-    def get_all_attack_portfolios(self, assets, n):
-        if n == 0:
-            return [([], 0)]
-        asset_sym = self.id_to_sym[n]
-        asset = assets[asset_sym]
-        orders = []
-        prev_orders = self.get_all_attack_portfolios(assets, n - 1)
-        orders.extend(prev_orders)
-        for i in range(1, self.max_order_num + 1):
-            num_shares = int(floor(i * self.min_order_percentage * assets[asset_sym].daily_volume))
-            order = Sell(asset_sym, num_shares)
-            cost = asset.zero_time_price * num_shares
-            for o, o_cost in prev_orders:
-                new_order = copy.copy(o)
-                new_order.append(order)
-                new_cost = cost + o_cost
-                orders.append((new_order, new_cost))
-        return orders
+    # def get_all_attack_portfolios(self, assets, n):
+    #     if n == 0:
+    #         return [([], 0)]
+    #     asset_sym = self.id_to_sym[n]
+    #     asset = assets[asset_sym]
+    #     orders = []
+    #     prev_orders = self.get_all_attack_portfolios(assets, n - 1)
+    #     orders.extend(prev_orders)
+    #     for i in range(1, self.max_order_num + 1):
+    #         num_shares = int(floor(i * self.min_order_percentage * assets[asset_sym].daily_volume))
+    #         order = Sell(asset_sym, num_shares)
+    #         cost = asset.zero_time_price * num_shares
+    #         for o, o_cost in prev_orders:
+    #             new_order = copy.copy(o)
+    #             new_order.append(order)
+    #             new_cost = cost + o_cost
+    #             orders.append((new_order, new_cost))
+    #     return orders

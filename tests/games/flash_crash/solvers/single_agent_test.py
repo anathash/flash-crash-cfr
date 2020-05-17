@@ -33,28 +33,28 @@ class MockFund(AssetFundNetwork.Fund):
 
 class TestSingleAgentSolver  (unittest.TestCase):
 
-    def test_get_all_attack_portfolios(self):
-        a1 = AssetFundNetwork.Asset(price=10, daily_volume=10, symbol='a1')
-        a2 = AssetFundNetwork.Asset(price=20, daily_volume=10, symbol='a2')
-        f1 = MockFund('f1', a1, 1)
-        f2 = MockFund('f2', a2, 1)
-        network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
-                                                     mi_calc=MockMarketImpactTestCalculator())
-
-        expected_portfolio = [([],0),
-                               ([Sell("a1",5)],50),([Sell("a1",10)],100),
-                               ([Sell("a2", 5)], 100), ([Sell("a2", 10)], 200),
-                               ([Sell("a1", 5),Sell("a2", 5) ], 150),
-                               ([Sell("a1", 5),Sell("a2", 10) ], 250),
-                               ([Sell("a1", 10),Sell("a2", 5) ], 200),
-                               ([Sell("a1", 10),Sell("a2", 10) ], 300)
-                               ]
-        solver = SingleAgentESSolver(network, 0.5,2)
-        actual_portfolio = solver.get_all_attack_portfolios(network.assets, 2)
-        expected_portfolio_str = sorted([(str(x),str(y)) for (x,y) in expected_portfolio])
-        actual_portfolio_str = sorted([(str(x),str(y)) for (x,y) in actual_portfolio])
-
-        self.assertEqual(expected_portfolio_str, actual_portfolio_str)
+    # def test_get_all_attack_portfolios(self):
+    #     a1 = AssetFundNetwork.Asset(price=10, daily_volume=10, symbol='a1')
+    #     a2 = AssetFundNetwork.Asset(price=20, daily_volume=10, symbol='a2')
+    #     f1 = MockFund('f1', a1, 1)
+    #     f2 = MockFund('f2', a2, 1)
+    #     network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
+    #                                                  mi_calc=MockMarketImpactTestCalculator())
+    #
+    #     expected_portfolio = [([],0),
+    #                            ([Sell("a1",5)],50),([Sell("a1",10)],100),
+    #                            ([Sell("a2", 5)], 100), ([Sell("a2", 10)], 200),
+    #                            ([Sell("a1", 5),Sell("a2", 5) ], 150),
+    #                            ([Sell("a1", 5),Sell("a2", 10) ], 250),
+    #                            ([Sell("a1", 10),Sell("a2", 5) ], 200),
+    #                            ([Sell("a1", 10),Sell("a2", 10) ], 300)
+    #                            ]
+    #     solver = SingleAgentESSolver(network, 0.5,2)
+    #     actual_portfolio = solver.get_all_attack_portfolios(network.assets, 2)
+    #     expected_portfolio_str = sorted([(str(x),str(y)) for (x,y) in expected_portfolio])
+    #     actual_portfolio_str = sorted([(str(x),str(y)) for (x,y) in actual_portfolio])
+    #
+    #     self.assertEqual(expected_portfolio_str, actual_portfolio_str)
 
     def test_get_attacks_in_budget(self):
         a1 = AssetFundNetwork.Asset(price=10, daily_volume=10, symbol='a1')

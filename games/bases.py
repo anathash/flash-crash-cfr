@@ -1,3 +1,4 @@
+from constants import MARKET
 from games.kunh.constants import CHANCE
 
 
@@ -13,6 +14,9 @@ class GameStateBase:
 
     def is_chance(self):
         return self.to_move == CHANCE
+
+    def is_market(self):
+        return self.to_move == MARKET
 
     def inf_set(self):
         raise NotImplementedError("Please implement information_set method")

@@ -65,7 +65,12 @@ class TestActions  (unittest.TestCase):
         expected_orders.append(([],0))
         actual_orders.sort(key=operator.itemgetter(1))
         expected_orders.sort(key=operator.itemgetter(1))
-        self.assertEqual(actual_orders, expected_orders)
+        self.assertEqual(len(actual_orders), len(expected_orders))
+        for i in range(0, len(actual_orders)):
+            actual_orders[i][0].sort(key=lambda x:x.asset_symbol)
+            expected_orders[i][0].sort(key=lambda x:x.asset_symbol)
+            self.assertListEqual(actual_orders[i][0],expected_orders[i][0])
+            self.assertEqual(actual_orders[i][1],expected_orders[i][1])
 
     def dont_test_get_possible_attacks(self):
         a1 = AssetFundNetwork.Asset(price=1, daily_volume=10, symbol='a1')

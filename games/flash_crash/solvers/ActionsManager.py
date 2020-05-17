@@ -6,6 +6,7 @@ from constants import MAX_ORDERS_PER_ASSETS, SELL, BUY
 import itertools
 from Orders import Sell, Buy
 from SysConfig import SysConfig
+from solvers.common import copy_network
 
 
 class Attack:
@@ -110,7 +111,7 @@ class ActionsManager:
         return attacks
 
     def get_possible_defenses(self, af_network, budget, history_assets_dict):
-        funds_under_risk = self.__funds_under_risk(af_network)
+        funds_under_risk = self.__funds_under_risk(copy_network(af_network))
         asset_syms = set()
         for f in funds_under_risk:
             asset_syms.update(af_network.funds[f].portfolio.keys())

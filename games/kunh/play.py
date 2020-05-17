@@ -1,4 +1,4 @@
-from cfr import ChanceSamplingCFR, VanillaCFR
+from solvers.cfr import ChanceSamplingCFR, VanillaCFR
 from kunh.constants import CARDS_DEALINGS
 from kunh.kuhn import KuhnRootChanceGameState
 

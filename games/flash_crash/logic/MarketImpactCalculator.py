@@ -38,13 +38,9 @@ class SqrtMarketImpactCalculator(MarketImpactCalculator):
             return delta
         raise ValueError
 
-    def get_updated_price(self, num_shares, asset):
+    def get_updated_price(self, num_shares, asset, sign):
         frac_liquidated = num_shares / asset.daily_volume
         delta = sqrt(abs(frac_liquidated)) * self.Y * asset.volatility
-        if frac_liquidated < 0:
-            return 1 - delta
-        else:
-            return 1 + delta
-        raise ValueError
+        return asset.price + sign/abs(sign)*delta
 
 

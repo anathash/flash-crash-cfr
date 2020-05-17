@@ -53,7 +53,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
                                ([Sell("a1", 10),Sell("a2", 10) ], 300)
                                ]
         solver = SingleAgentESSolver(network, 0.5,2)
-        actual_portfolio = solver.get_all_attack_portfolios(2)
+        actual_portfolio = solver.get_all_attack_portfolios(network.assets, 2)
         expected_portfolio_str = sorted([(str(x),str(y)) for (x,y) in expected_portfolio])
         actual_portfolio_str = sorted([(str(x),str(y)) for (x,y) in actual_portfolio])
 
@@ -75,7 +75,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
 
                               ]
         solver = SingleAgentESSolver(network, 0.5, 2)
-        actual_portfolio = solver.get_attacks_in_budget(200)
+        actual_portfolio = solver.get_attacks_in_budget(200, True)
         expected_portfolio_str = sorted([(str(x), str(y)) for (x, y) in expected_portfolio])
         actual_portfolio_str = sorted([(str(x), str(y)) for (x, y) in actual_portfolio])
         self.assertEqual(expected_portfolio_str, actual_portfolio_str)

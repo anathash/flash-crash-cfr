@@ -60,7 +60,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
                                ([Sell("a1", 10),Sell("a2", 10) ], 300)
                                ]
         solver = SingleAgentESSolver(network, 0.5,2)
-        actual_portfolio = solver.get_all_attack_portfolios(2)
+        actual_portfolio = solver.get_all_attack_portfolios(network.assets, 2)
         expected_portfolio_str = sorted([(str(x),str(y)) for (x,y) in expected_portfolio])
         actual_portfolio_str = sorted([(str(x),str(y)) for (x,y) in actual_portfolio])
 
@@ -82,7 +82,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
 
                               ]
         solver = SingleAgentESSolver(network, 0.5, 2)
-        actual_portfolio = solver.get_attacks_in_budget(200)
+        actual_portfolio = solver.get_attacks_in_budget(200, True)
         expected_portfolio_str = sorted([(str(x), str(y)) for (x, y) in expected_portfolio])
         actual_portfolio_str = sorted([(str(x), str(y)) for (x, y) in actual_portfolio])
         self.assertEqual(expected_portfolio_str, actual_portfolio_str)
@@ -140,7 +140,7 @@ class TestSingleAgentSolver  (unittest.TestCase):
 
         solver = SingleAgentDynamicProgrammingSolver(network, 40, 0.5, 2)
         self.assertEqual(solver.results.value, 1)
-        self.assertEqual(solver.results.actions[0], Sell('a2', 2))
+        self.assertEqual(solver.results.actions[0], Sell('a2', 10))
 
 
     def test_4(self):
@@ -190,13 +190,13 @@ class TestSingleAgentSolver  (unittest.TestCase):
                                                      mi_calc=MockMarketImpactTestCalculator())
 
         solver = SingleAgentDynamicProgrammingSolver(network, 40, 1, 1)
-        solver.store_solution('test_store_file.csv')
+        solver.store_solution('../resources/test_store_file.csv')
         expected_rows = []
         for budget in [40,30,20,10]:
             expected_rows.append({'budget':str(budget), 'value':str(solver.solutions[2][budget].value),
                                   'actions':str(solver.solutions[2][budget].actions)})
         i =0
-        with open('test_store_file.csv', newline='') as csvfile:
+        with open('../resources/test_store_file.csv', newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 self.assertEqual(dict(row), expected_rows[i])

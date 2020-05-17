@@ -4,7 +4,7 @@ from math import inf
 from AssetFundNetwork import AssetFundsNetwork
 from SysConfig import SysConfig
 from actions import get_possible_attacks, get_possible_defenses
-from constants import ATTACKER, DEFENDER, MARKET, ROOT_ATTACKER
+from constants import ATTACKER, DEFENDER, MARKET
 from solvers.single_agent_solver import SingleAgentESSolver
 
 
@@ -49,7 +49,7 @@ def minimax2(turn, network: AssetFundsNetwork, attacker_budget, defender_budget,
  #   print(turn + ' Defender:' + str(defender_budget) + ' Attacker' + str(attacker_budget))
     best_result = None
     node = MiniMaxTree(turn)
-    if turn == ROOT_ATTACKER:
+    if turn == ATTACKER:
         order_size = SysConfig.get("STEP_ORDER_SIZE")
         max_num_orders = SysConfig.get("MAX_NUM_ORDERS")
         es_solver = SingleAgentESSolver(network, order_size, max_num_orders)
@@ -111,7 +111,7 @@ def alphabeta(turn, network: AssetFundsNetwork, attacker_budget, defender_budget
     #   print(turn + ' Defender:' + str(defender_budget) + ' Attacker' + str(attacker_budget))
     best_result = None
     node = MiniMaxTree(turn)
-    if turn == ROOT_ATTACKER:
+    if turn == ATTACKER:
         order_size = SysConfig.get("STEP_ORDER_SIZE")
         max_num_orders = SysConfig.get("MAX_NUM_ORDERS")
         es_solver = SingleAgentESSolver(network, order_size, max_num_orders)
@@ -176,13 +176,14 @@ def alphabeta(turn, network: AssetFundsNetwork, attacker_budget, defender_budget
                       future_actions=child_result.actions, network=child_result.network,
                       attacker_cost=child_result.attacker_cost, defender_cost=child_result.defender_cost)
 
-def minimax(turn, network: AssetFundsNetwork, attacker_budget, defender_budget):
+def minimax(turn, network: AssetFundsNetwork, attacker_budget, defender_budget, root_attacker = False):
    # print(turn + ' Defender:' + str(defender_budget) + ' Attacker ' + str(attacker_budget))
     best_result = None
     node = MiniMaxTree(turn)
-    if turn == ATTACKER or turn == ROOT_ATTACKER:
-        actions = [([],0)]
-        actions.extend(get_possible_attacks(network, attacker_budget,turn == ROOT_ATTACKER))
+    if turn == ATTACKER:
+#        actions = [([],0)]
+#        actions.extend(get_possible_attacks(network, attacker_budget,root_attacker))
+        actions = get_possible_attacks(network, attacker_budget,root_attacker)
         #value = inf
         for (order_set, cost) in actions:
             net2 = copy.deepcopy(network)
@@ -200,10 +201,8 @@ def minimax(turn, network: AssetFundsNetwork, attacker_budget, defender_budget):
     elif turn == DEFENDER:
         net2 = copy.deepcopy(network)
         net2.simulate_trade()
-        actions = [([], 0)]
         if not net2.count_margin_calls() ==0:
-            actions.extend(get_possible_defenses(network, defender_budget))
-#        actions = get_possible_defenses(network, defender_budget)
+            actions = get_possible_defenses(network, defender_budget)
         for (order_set, cost) in actions:
             net2 = copy.deepcopy(network)
             net2.submit_buy_orders(order_set)

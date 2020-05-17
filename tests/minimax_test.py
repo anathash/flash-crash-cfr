@@ -4,7 +4,7 @@ import unittest
 import AssetFundNetwork
 from SysConfig import SysConfig
 
-from constants import ATTACKER, MARKET, DEFENDER, ROOT_ATTACKER
+from constants import ATTACKER, MARKET, DEFENDER
 from minimax import minimax, MiniMaxTree, minimax2
 from mocks import MockFund, MockMarketImpactTestCalculator
 
@@ -27,7 +27,7 @@ class TestMinimax(unittest.TestCase):
             self.print_tree(subtree, prefix + '\t')
 
     def gen_tree(self):
-        root = MiniMaxTree(ROOT_ATTACKER)
+        root = MiniMaxTree(ATTACKER)
         root.value = 0
         node1 = MiniMaxTree(MARKET, 0)
         node2 = MiniMaxTree(DEFENDER, 0)
@@ -49,14 +49,14 @@ class TestMinimax(unittest.TestCase):
         node2.add_child(nope, node4)
         node3.add_child(nope, node6)
         node4.add_child(nope, node5)
-        node6.add_child(market, node7)
-        node7.add_child(nope, node8)
-        node8.add_child(nope, node9)
+      #  node6.add_child(market, node7)
+      #  node7.add_child(nope, node8)
+     #   node8.add_child(nope, node9)
 
         return root
 
     def gen_tree2(self):
-        root = MiniMaxTree(ROOT_ATTACKER, -1)
+        root = MiniMaxTree(ATTACKER, -1)
         node1 = MiniMaxTree(MARKET, 0)
         node2 = MiniMaxTree(MARKET, 0)
         node3 = MiniMaxTree(MARKET, 0)
@@ -121,7 +121,7 @@ class TestMinimax(unittest.TestCase):
                                                      limit_trade_step = True)
 
      #   value, actions, actual_tree = minimax(ROOT_ATTACKER, network, 205,190)
-        result = minimax(ROOT_ATTACKER, network, 205,190)
+        result = minimax(ATTACKER, network, 205,190, True)
         expected_tree = self.gen_tree()
 
         print(result.value)
@@ -145,7 +145,7 @@ class TestMinimax(unittest.TestCase):
                                                      limit_trade_step = True)
 
      #   value, actions, actual_tree = minimax(ROOT_ATTACKER, network, 205,190)
-        result = minimax2(ROOT_ATTACKER, network, 405,190, True)
+        result = minimax2(ATTACKER, network, 405,190, True)
         expected_tree = self.gen_tree2()
 
         print(result.value)

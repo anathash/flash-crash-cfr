@@ -138,7 +138,6 @@ def read_assets_file(assets_file, num_assets):
 
 
 class AssetFundsNetwork:
-    assets: Dict[str, Asset]
 
     def __init__(self, funds: Dict[str, Fund], assets: Dict[str, Asset], mi_calc: MarketImpactCalculator,
                  intraday_asset_gain_max_range =None, limit_trade_step = True):

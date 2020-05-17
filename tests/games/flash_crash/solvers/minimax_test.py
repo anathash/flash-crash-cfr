@@ -5,7 +5,7 @@ import AssetFundNetwork
 from SysConfig import SysConfig
 
 from constants import ATTACKER, MARKET, DEFENDER
-from minimax import minimax, MiniMaxTree, minimax2
+from solvers.minimax import minimax, MiniMaxTree, minimax2
 from mocks import MockFund, MockMarketImpactTestCalculator
 
 

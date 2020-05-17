@@ -6,7 +6,6 @@ import AssetFundNetwork
 from AssetFundNetworkTest import MockMarketImpactTestCalculator
 from MarketImpactCalculator import MarketImpactCalculator
 from Orders import NoLimitOrder, Sell
-from SysConfig import SysConfig
 from solvers.single_agent_dynamic_programin import SingleAgentDynamicProgrammingSolver
 from solvers.single_agent_solver import SingleAgentESSolver
 
@@ -190,13 +189,13 @@ class TestSingleAgentSolver  (unittest.TestCase):
                                                      mi_calc=MockMarketImpactTestCalculator())
 
         solver = SingleAgentDynamicProgrammingSolver(network, 40, 1, 1)
-        solver.store_solution('../resources/test_store_file.csv')
+        solver.store_solution('../../../resources/test_store_file.csv')
         expected_rows = []
         for budget in [40,30,20,10]:
             expected_rows.append({'budget':str(budget), 'value':str(solver.solutions[2][budget].value),
                                   'actions':str(solver.solutions[2][budget].actions)})
         i =0
-        with open('../resources/test_store_file.csv', newline='') as csvfile:
+        with open('../../../resources/test_store_file.csv', newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 self.assertEqual(dict(row), expected_rows[i])

@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock, call
 
 import networkx as nx
 import numpy as np
@@ -232,13 +233,17 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
         f2 = Fund('f2', {'a2' : 10}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock(return_value=0.5)
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
-                                                     mi_calc=MockMarketImpactTestCalculator(), limit_trade_step= False)
+                                                     mi_calc=mi_calc, limit_trade_step= False)
         network.submit_sell_orders([Sell('a1',2)])
-        network.simulate_trade()
+        log = network.simulate_trade()
+        mi_calc.get_updated_price.assert_called_once_with(2, a1, -1)
+        self.assertDictEqual({'a1':'1->0.5'},log)
         self.assertFalse(network.buy_orders)
         self.assertFalse(network.sell_orders)
-        self.assertTrue(a1.price < 1)
+        self.assertTrue(a1.price == 0.5)
         self.assertTrue(a2.price == 2)
 
     def test_simulate_trade_only_buy(self):
@@ -246,13 +251,17 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
         f2 = Fund('f2', {'a2' : 10}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock(return_value=1.5)
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
-                                                     mi_calc=MockMarketImpactTestCalculator(), limit_trade_step= False)
+                                                     mi_calc=mi_calc, limit_trade_step= False)
         network.submit_buy_orders([Buy('a1',2)])
-        network.simulate_trade()
+        log = network.simulate_trade()
+        mi_calc.get_updated_price.assert_called_once_with(2, a1, 1)
+        self.assertDictEqual({'a1': '1->1.5'}, log)
         self.assertFalse(network.buy_orders)
         self.assertFalse(network.sell_orders)
-        self.assertTrue(a1.price > 1)
+        self.assertTrue(a1.price == 1.5)
         self.assertTrue(a2.price == 2)
 
     def test_simulate_trade_mix_trades(self):
@@ -260,27 +269,37 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
         f2 = Fund('f2', {'a2' : 10}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock(return_value=1.5)
+
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
-                                                     mi_calc=MockMarketImpactTestCalculator(), limit_trade_step= False)
+                                                     mi_calc=mi_calc, limit_trade_step= False)
+
         network.submit_sell_orders([Sell('a2',2)])
         network.submit_buy_orders([Buy('a1', 2)])
 
-        network.simulate_trade()
+        log = network.simulate_trade()
+        calls = [call(2, a2, -1), call(2, a1, 1)]
+        mi_calc.get_updated_price.assert_has_calls(calls, any_order =True)
+        self.assertDictEqual({'a1': '1->1.5', 'a2': '2->1.5'}, log)
         self.assertFalse(network.buy_orders)
         self.assertFalse(network.sell_orders)
-        self.assertTrue(a1.price > 1)
-        self.assertTrue(a2.price < 2)
 
     def test_simulate_trade_buy_equals_sell(self):
         a1 = AssetFundNetwork.Asset(price=1, daily_volume=1, symbol='a1')
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
         f2 = Fund('f2', {'a2' : 10}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock()
+
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
-                                                     mi_calc=MockMarketImpactTestCalculator(), limit_trade_step= False)
+                                                     mi_calc=mi_calc, limit_trade_step= False)
         network.submit_buy_orders([Buy('a1',3)])
         network.submit_sell_orders([Sell('a1',3)])
-        network.simulate_trade()
+        log = network.simulate_trade()
+        mi_calc.get_updated_price.assert_not_called()
+        self.assertFalse(log)
         self.assertFalse(network.buy_orders)
         self.assertFalse(network.sell_orders)
         self.assertTrue(a1.price == 1)
@@ -291,14 +310,18 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
         f2 = Fund('f2', {'a2' : 10}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock(return_value=1.5)
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
-                                                     mi_calc=MockMarketImpactTestCalculator(), limit_trade_step= False)
+                                                     mi_calc=mi_calc, limit_trade_step= False)
         network.submit_buy_orders([Buy('a1',3)])
         network.submit_sell_orders([Sell('a1',2)])
-        network.simulate_trade()
+        log = network.simulate_trade()
+        self.assertDictEqual({'a1': '1->1.5'}, log)
+        mi_calc.get_updated_price.assert_called_once_with(1, a1, 1)
         self.assertFalse(network.buy_orders)
         self.assertFalse(network.sell_orders)
-        self.assertTrue(a1.price  == 1.1 )
+        self.assertTrue(a1.price  == 1.5 )
         self.assertTrue(a2.price == 2)
 
     def test_simulate_trade_sell_more_than_buy(self):
@@ -306,14 +329,19 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
         f2 = Fund('f2', {'a2' : 10}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock(return_value=0.5)
+
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
-                                                     mi_calc=MockMarketImpactTestCalculator(), limit_trade_step= False)
+                                                     mi_calc=mi_calc, limit_trade_step= False)
         network.submit_buy_orders([Buy('a1',2)])
         network.submit_sell_orders([Sell('a1',3)])
-        network.simulate_trade()
+        log = network.simulate_trade()
+        self.assertDictEqual({'a1': '1->0.5'}, log)
+        mi_calc.get_updated_price.assert_called_once_with(1, a1, -1)
         self.assertFalse(network.buy_orders)
         self.assertFalse(network.sell_orders)
-        self.assertTrue(a1.price == 0.9 )
+        self.assertTrue(a1.price == 0.5 )
         self.assertTrue(a2.price == 2)
 
     def test_simulate_trade_buy_orders_in_sell_command(self):
@@ -321,14 +349,17 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
         f2 = Fund('f2', {'a2' : 10}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock()
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
-                                                     mi_calc=MockMarketImpactTestCalculator(), limit_trade_step= False)
+                                                     mi_calc=mi_calc, limit_trade_step= False)
         exception = False
         try:
             network.submit_sell_orders([Sell('a1',2), Buy('a1',2)])
         except TypeError:
             exception = True
 
+        mi_calc.get_updated_price.assert_not_called()
         self.assertTrue(exception)
 
     def test_simulate_trade_sell_orders_in_buy_command(self):
@@ -336,24 +367,31 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         a2 = AssetFundNetwork.Asset(price=2, daily_volume=1, symbol='a2')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
         f2 = Fund('f2', {'a2' : 10}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock()
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2': a2},
-                                                     mi_calc=MockMarketImpactTestCalculator(), limit_trade_step= False)
+                                                     mi_calc=mi_calc, limit_trade_step= False)
         exception = False
         try:
             network.submit_buy_orders([Buy('a1',2), Sell('a1',2)])
         except TypeError:
             exception = True
 
+        mi_calc.get_updated_price.assert_not_called()
         self.assertTrue(exception)
 
     def test_simulate_trade_limit_trade_step(self):
         a1 = AssetFundNetwork.Asset(price=1, daily_volume=1000, symbol='a1')
         f1 = Fund('f1', {'a1' : 10}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock(return_value = 1.5)
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1}, assets={'a1': a1},
-                                                     mi_calc=MockMarketImpactTestCalculator())
+                                                     mi_calc=mi_calc)
         SysConfig.set('TIME_STEP_MINUTES',1)
         network.submit_buy_orders([Buy('a1',2)])
-        network.simulate_trade()
+        log = network.simulate_trade()
+        self.assertDictEqual({'a1': '1->1.5'}, log)
+        mi_calc.get_updated_price.assert_called_once_with(1, a1, 1)
         self.assertEqual(network.buy_orders['a1'],1)
 
     def test_read_two_assets_from_file(self):

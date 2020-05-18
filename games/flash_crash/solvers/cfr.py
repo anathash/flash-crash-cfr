@@ -69,7 +69,7 @@ class CounterfactualRegretMinimizationBase:
                 return state.chance_prob() * sum([self._cfr_utility_recursive(outcome, reach_attacker, reach_defender) for outcome in chance_outcomes])
 
         if state.is_market():
-            return self._cfr_utility_recursive(state.play('SIMULATE_TRADE'), reach_attacker, reach_defender)
+            return self._cfr_utility_recursive(state.play(state.actions[0]), reach_attacker, reach_defender)
 
         # sum up all utilities for playing actions in our game state
         value = 0.

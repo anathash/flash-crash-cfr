@@ -82,23 +82,27 @@ class MarketMoveGameState(FlashCrashGameStateBase):
         if af_network.no_more_sell_orders():
             actions = []
         else:
-            actions = ['SIMULATE_TRADE']
+            net2 = copy_network(af_network)
+            actions = [str(net2.simulate_trade())]
+
         super().__init__(parent = parent, to_move = to_move, actions=actions,history_assets_dict=history_assets_dict,
                          af_network = af_network, budget=budget, actions_history=actions_history)
 
         self._information_set = ".{0}.{1}.{2}".format(self.af_network.public_state(),
                                                       str(af_network.sell_orders),str(af_network.buy_orders))
         if actions:
-            net2 = copy_network(af_network)
-            net2.simulate_trade()
-            self.children['SIMULATE_TRADE'] = AttackerMoveGameState(
+            action = actions[0]
+            actions_history2 = copy.deepcopy(actions_history)
+            actions_history2[SELL].append([action])
+            actions_history2[BUY].append([action])
+            self.children[action] = AttackerMoveGameState(
                     self,
                     actions_manager,
                     ATTACKER,
                     self.history_assets_dict,
                     budget,
                     net2,
-                    actions_history
+                    actions_history2
                 )
 
     def chance_prob(self):
@@ -114,7 +118,7 @@ class AttackerMoveGameState(FlashCrashGameStateBase):
             str_order_sets = [str(x[0]) for x in attacks]
         super().__init__(parent=parent,  to_move=to_move, actions = str_order_sets,
                          history_assets_dict=history_assets_dict, af_network=af_network, budget=budget, actions_history=actions_history)
-        self._information_set = ".{0}.{1}.{2}".format(self.af_network.public_state(), str(budget.attacker),'SELL:' + str(actions_history[SELL]))
+        self._information_set = ".{0}.{1}".format(str(budget.attacker), 'A_HISTORY:' + str(actions_history[SELL]))
         if not str_order_sets:
             return
 
@@ -160,7 +164,7 @@ class DefenderMoveGameState(FlashCrashGameStateBase):
                 net2,
                 actions_history2
             )
-        self._information_set = ".{0}.{1}.{2}".format(self.af_network.public_state(),str(budget.defender), 'BUY:' + str(actions_history[BUY]))
+        self._information_set = ".{0}.{1}".format(str(budget.defender), 'D_HISTORY:' + str(actions_history[BUY]))
 
 
 

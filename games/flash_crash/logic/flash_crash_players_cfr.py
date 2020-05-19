@@ -1,13 +1,10 @@
 import copy
-import itertools
 
 from AssetFundNetwork import AssetFundsNetwork
 import random
 
-from SysConfig import SysConfig
-from constants import ATTACKER, CHANCE, DEFENDER, MARKET, BUY, SELL
+from constants import ATTACKER, CHANCE, DEFENDER, MARKET, BUY, SELL, SIM_TRADE
 from games.bases import GameStateBase
-from solvers.ActionsManager import ActionsManager
 from solvers.common import copy_network
 
 
@@ -16,16 +13,19 @@ class Budget:
         self.attacker = attacker
         self.defender = defender
 
+    def __eq__(self, other):
+        return isinstance(other, Budget) and self.defender == other.defender and self.attacker == other.attacker
+#parent, actions_manager, to_move, history_assets_dict, budget, af_network, actions_history
 
 class FlashCrashRootChanceGameState(GameStateBase):
-
-    def __init__(self, af_network:AssetFundsNetwork, defender_budget, attacker_budgets):
+    def __init__(self, action_mgr, af_network:AssetFundsNetwork, defender_budget, attacker_budgets):
         self.af_network = af_network
         super().__init__(parent=None, to_move=CHANCE, actions =[str(x) for x in attacker_budgets])
         self.children = {
             str(budget): AttackerMoveGameState(
-                self,  ActionsManager(af_network.assets, SysConfig.get("STEP_ORDER_SIZE"), 1), ATTACKER,  {BUY:{},SELL:{}},
-                Budget(attacker=budget,defender=defender_budget),af_network,{BUY:[],SELL:[]}
+                parent=self,  actions_manager=action_mgr, to_move=ATTACKER,  history_assets_dict={BUY:{},SELL:{}},
+                budget=Budget(attacker=budget,defender=defender_budget),af_network=af_network,
+                actions_history={BUY:[],SELL:[],SIM_TRADE:[]}
             ) for budget in attacker_budgets
         }
         self._chance_prob = 1. / len(self.children)
@@ -61,13 +61,12 @@ class FlashCrashGameStateBase(GameStateBase):
         if not self.is_terminal():
             raise RuntimeError("trying to evaluate non-terminal node")
 
-        self.af_network.clear_order_book()
         return -1*self.af_network.count_margin_calls()
 
     def is_terminal(self):
         return self.af_network.margin_calls() or self.actions == []
 
-    def update_asset_history(self, order_set, buy_sell_key):
+    def _update_asset_history(self, order_set, buy_sell_key):
         history_assets_dict2 = copy.deepcopy(self.history_assets_dict)
         for order in order_set:
             order_count = history_assets_dict2[buy_sell_key][order.asset_symbol] if order.asset_symbol \
@@ -88,13 +87,15 @@ class MarketMoveGameState(FlashCrashGameStateBase):
         super().__init__(parent = parent, to_move = to_move, actions=actions,history_assets_dict=history_assets_dict,
                          af_network = af_network, budget=budget, actions_history=actions_history)
 
-        self._information_set = ".{0}.{1}.{2}".format(self.af_network.public_state(),
-                                                      str(af_network.sell_orders),str(af_network.buy_orders))
+        self._information_set = ".{0}.{1}.{2}".format('MARKET_HISTORY:' + str(actions_history[SIM_TRADE])
+                                                     ,'BUY:'+str(af_network.buy_orders), 'SELL:'+str(af_network.sell_orders))
+
         if actions:
             action = actions[0]
             actions_history2 = copy.deepcopy(actions_history)
-            actions_history2[SELL].append([action])
-            actions_history2[BUY].append([action])
+            actions_history2[SELL].append(action)
+            actions_history2[BUY].append(action)
+            actions_history2[SIM_TRADE].append(action)
             self.children[action] = AttackerMoveGameState(
                     self,
                     actions_manager,
@@ -126,17 +127,16 @@ class AttackerMoveGameState(FlashCrashGameStateBase):
             net2 = copy_network(af_network)
             net2.submit_sell_orders(order_set)
             actions_history2 = copy.deepcopy(actions_history)
-            actions_history2[SELL].append([str(order_set)])
+            actions_history2[SELL].append(str(order_set))
             self.children[str(order_set)] = DefenderMoveGameState(
                 self,
                 actions_manager,
                 DEFENDER,
-                self.update_asset_history(order_set, SELL),
+                self._update_asset_history(order_set, SELL),
                 Budget(budget.attacker - cost, budget.defender),
                 net2,
                 actions_history2
             )
-
 
 
 class DefenderMoveGameState(FlashCrashGameStateBase):
@@ -154,12 +154,12 @@ class DefenderMoveGameState(FlashCrashGameStateBase):
             net2 = copy_network(af_network)
             net2.submit_buy_orders(order_set)
             actions_history2 = copy.deepcopy(actions_history)
-            actions_history2[BUY].append([str(order_set)])
+            actions_history2[BUY].append(str(order_set))
             self.children[str(order_set)] = MarketMoveGameState(
                 self,
                 actions_manager,
                 MARKET,
-                self.update_asset_history(order_set, BUY),
+                self._update_asset_history(order_set, BUY),
                 Budget(budget.attacker,budget.defender - cost),
                 net2,
                 actions_history2

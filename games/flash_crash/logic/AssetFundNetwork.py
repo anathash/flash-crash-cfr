@@ -233,7 +233,7 @@ class AssetFundsNetwork:
                     del self.sell_orders[order_key]
                 sign = 1
             updated_price  = self.mi_calc.get_updated_price(shares_to_trade, self.assets[order_key], sign)
-            log[order_key] = "{0}->{1}".format(self.assets[order_key].price, updated_price)
+            log[order_key] = '{0}->{1}'.format(self.assets[order_key].price, updated_price)
             self.assets[order_key].price = updated_price
         return log
 

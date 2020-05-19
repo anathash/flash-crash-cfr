@@ -112,11 +112,12 @@ class ActionsManager:
         return portfolios_dict
 
     def get_possible_attacks(self, budget = None, history = []):
-        if budget:
+        if budget is None:
+            attacks_in_budget = self.__portfolios_dict.values()
+        else:
             attacks_costs_in_budget = self.__sorted_keys.irange_key(min_key=0, max_key=budget)
             attacks_in_budget = [self.__portfolios_dict[cost] for cost in attacks_costs_in_budget]
-        else:
-            attacks_in_budget = self.__portfolios_dict.values()
+
         attacks_in_budget_flat = [attack for attack_list in attacks_in_budget for attack in attack_list]
         if history:
             return [(attack.order_set, attack.cost) for attack in attacks_in_budget_flat

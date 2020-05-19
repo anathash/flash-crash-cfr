@@ -12,6 +12,7 @@ from MarketImpactCalculator import ExponentialMarketImpactCalculator
 from SysConfig import SysConfig
 from constants import ATTACKER
 from flash_crash_players_cfr import FlashCrashRootChanceGameState
+from solvers.ActionsManager import ActionsManager
 from solvers.minimax import minimax, minimax2, alphabeta
 from solvers.cfr import VanillaCFR
 from solvers.common import store_solutions_by_key, store_solutions
@@ -109,7 +110,7 @@ def update_stats(result, alg, attacker_budget, defender_budget):
 def run_single_exp(network, attacker_budget, defender_budget):
     stats = {ATTACKER_BUDGET:attacker_budget,DEFENDER_BUDGET:defender_budget}
     start = time.time()
-    minimax_result = minimax(ROOT_ATTACKER, network,attacker_budget, defender_budget)
+    minimax_result = minimax(ATTACKER, network,attacker_budget, defender_budget)
     minimax_time = time.time() - start
     update_stats(minimax_result, minimax_time, stats)
     start = time.time()
@@ -238,10 +239,11 @@ def run_cfr_experiments(network, lower_bound, jump, upper_bound, dirname):
 def compute_equilibrium(network, defender_budget):
     ratios = [0.5, 2]
     attacker_budgets = [int(defender_budget * r) for r in ratios]
-    root = FlashCrashRootChanceGameState(af_network=network, defender_budget=defender_budget,
+    actions_mgr = ActionsManager(network.assets, SysConfig.get("STEP_ORDER_SIZE"), 1)
+    root = FlashCrashRootChanceGameState(action_mgr=actions_mgr, af_network=network, defender_budget=defender_budget,
                                          attacker_budgets=attacker_budgets)
     vanilla_cfr = VanillaCFR(root)
-    vanilla_cfr.run(iterations=1000)
+    vanilla_cfr.run(iterations=10)
     vanilla_cfr.compute_nash_equilibrium()
     return vanilla_cfr.value_of_the_game()
 
@@ -256,8 +258,9 @@ def run_cfr_experiments_for_defender_budget(network, defender_budget, dir_name):
 
 def run_minimax_experiments(network, lower_bound, jump, upper_bound, dirname, alg ='minimax'):
     attacker_budget = lower_bound
+    actions_mgr = ActionsManager(network.assets, SysConfig.get("STEP_ORDER_SIZE"), 2)
     while (attacker_budget <= upper_bound):
-        run_minimax_experiments_for_attacker_budget(network, attacker_budget, dirname, alg)
+        run_minimax_experiments_for_attacker_budget(actions_mgr, network, attacker_budget, dirname, alg)
         attacker_budget += jump
 
 
@@ -271,21 +274,22 @@ def print_results(dir_name,attacker_budget,results, alg='minimax'):
         for result in results:
             writer.writerow(result)
 
-def run_minimax_experiments_for_attacker_budget(network, attacker_budget, dir_name, alg):
+def run_minimax_experiments_for_attacker_budget(actions_mgr, network, attacker_budget, dir_name, alg):
     results = []
     ratios = [0.1* i for i in range(10,1, -1)]
     defender_budgets = [0]
     defender_budgets.extend([int(attacker_budget * r) for r in ratios])
+#    defender_budgets = [252000000]
     #defender_budgets = [int(attacker_budget * r) for r in ratios]
     for defender_budget in defender_budgets:
         print(' Defender:' + str(defender_budget) + ' Attacker: ' + str(attacker_budget))
         if alg == 'minimax':
-            minimax_result = minimax2(ATTACKER, network, attacker_budget, defender_budget)
+            minimax_result = minimax2(actions_mgr, ATTACKER, network, attacker_budget, defender_budget)
         else:
-            minimax_result = alphabeta(ATTACKER, network, attacker_budget, defender_budget, (-inf,inf),(inf, inf))
+            minimax_result = alphabeta(actions_mgr, ATTACKER, network, attacker_budget, defender_budget, (-inf,inf),(inf, inf))
 
 
-        results.append(update_stats(minimax_result, 'minimax', attacker_budget, defender_budget))
+        results.append(update_stats(minimax_result, alg, attacker_budget, defender_budget))
     print_results(dir_name,attacker_budget,results, alg)
 
 
@@ -295,11 +299,15 @@ if __name__ == "__main__":
     dirname ='../results/Tue_May__5_15_11_13_2020/'
     network = get_network_from_dir(dirname)
     network.limit_trade_step = True
+#    run_minimax_experiments(network, lower_bound=420000000, jump = 200000000,upper_bound= 420000000, dirname=dirname, alg='alphabeta')
+#    run_minimax_experiments(network, lower_bound=220000000, jump = 200000000,upper_bound= 600000000, dirname=dirname, alg='minimax')
+#    gen_es_solution_file(network, dirname)
+
 #    os.mkdir(dirname+'/cfr')
     run_cfr_experiments(network, lower_bound=200000000, jump = 100000000,upper_bound= 200000000, dirname=dirname)
 #    gen_es_solution_file(network, dirname)
-#    gen_single_agents_solution_file(network=network, dirname=dirname,lower_bound=4800000000, jump = 100000000,upper_bound=12000000000 )
- #   run_minimax_experiments(network, lower_bound=1000000000, jump = 1000000000,upper_bound= 1500000000, dirname=dirname)
+
+
   #  run_minimax_experiments(network, lower_bound=2000000000, jump = 2000000000,upper_bound= 6000000000, dirname=dirname, alg='alphabeta')
 #    stats_list = run_experiments(network)
 #    write_results_file(stats_list, dirname)

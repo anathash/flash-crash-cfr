@@ -123,7 +123,8 @@ class ActionsManager:
             return [(attack.order_set, attack.cost) for attack in attacks_in_budget_flat
                     if not self.__filter_from_history(attack, history, SELL)]
         else:
-            return attacks_in_budget_flat
+            return [(attack.order_set, attack.cost) for attack in attacks_in_budget_flat]
+
 
     def get_possible_defenses(self, af_network, budget, history_assets_dict={}):
         funds_under_risk = self.__funds_under_risk(copy_network(af_network))

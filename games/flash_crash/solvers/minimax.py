@@ -56,16 +56,16 @@ def minimax2(actions_mgr, turn, network: AssetFundsNetwork, attacker_budget, def
  #       portfolios = es_solver.get_attacks_in_budget(attacker_budget, include_opt_out)
         attacks = actions_mgr.get_possible_attacks(attacker_budget)
         i = -1
-        for attack in attacks:
+        for (order_set, cost) in attacks:
             i+=1
             net2 = copy.deepcopy(network)
-            net2.submit_sell_orders(attack.order_set)
-            child_result= minimax2(actions_mgr, MARKET,net2,attacker_budget - attack.cost, defender_budget)
-            node.add_child(str(attack.order_set), child_result.tree)
-            total_cost = child_result.attacker_cost + attack.cost
+            net2.submit_sell_orders(order_set)
+            child_result= minimax2(actions_mgr, MARKET,net2,attacker_budget - cost, defender_budget)
+            node.add_child(str(order_set), child_result.tree)
+            total_cost = child_result.attacker_cost + cost
             if not best_result or child_result.value < best_result.value or (child_result.value == best_result.value and
                                                                              total_cost < best_result.attacker_cost):
-                best_result = Result(funds=child_result.funds,node=node, order_set=attack.order_set,
+                best_result = Result(funds=child_result.funds,node=node, order_set=order_set,
                                      future_actions=child_result.actions, network=child_result.network,
                                      attacker_cost = total_cost,
                                      defender_cost = child_result.defender_cost)
@@ -117,18 +117,18 @@ def alphabeta(actions_mgr, turn, network: AssetFundsNetwork, attacker_budget, de
 
         # value = inf
         i = -1
-        for attack in attacks:
+        for (order_set,cost) in attacks:
             i += 1
             net2 = copy.deepcopy(network)
-            net2.submit_sell_orders(attack.order_set)
-            child_result = alphabeta(actions_mgr, MARKET, net2, attacker_budget - attack.cost, defender_budget, alpha, beta)
-            node.add_child(str(attack.order_set), child_result.tree)
-            total_cost = child_result.attacker_cost + attack.cost
+            net2.submit_sell_orders(order_set)
+            child_result = alphabeta(actions_mgr, MARKET, net2, attacker_budget - cost, defender_budget, alpha, beta)
+            node.add_child(str(order_set), child_result.tree)
+            total_cost = child_result.attacker_cost + cost
             if child_result.value < beta[0] or (child_result.value == beta[0] and total_cost < beta[1]):
                 beta = (child_result.value, total_cost)
             if not best_result or child_result.value < best_result.value or (child_result.value == best_result.value and
                                                                              total_cost < best_result.attacker_cost):
-                best_result = Result(funds=child_result.funds, node=node, order_set=attack.order_set,
+                best_result = Result(funds=child_result.funds, node=node, order_set=order_set,
                                      future_actions=child_result.actions, network=child_result.network,
                                      attacker_cost=total_cost,
                                      defender_cost=child_result.defender_cost)
@@ -184,15 +184,15 @@ def minimax(actions_mgr, turn, network: AssetFundsNetwork, attacker_budget, defe
         attacks = actions_mgr.get_possible_attacks(attacker_budget)
 #        actions = get_possible_attacks(network, attacker_budget,root_attacker)
         #value = inf
-        for attack in attacks:
+        for (order_set, cost) in attacks:
             net2 = copy.deepcopy(network)
-            net2.submit_sell_orders(attack.order_set)
-            child_result= minimax(actions_mgr, MARKET,net2,attacker_budget - attack.cost, defender_budget)
-            node.add_child(str(attack.order_set), child_result.tree)
-            total_cost = child_result.attacker_cost+attack.cost
+            net2.submit_sell_orders(order_set)
+            child_result= minimax(actions_mgr, MARKET,net2,attacker_budget - cost, defender_budget)
+            node.add_child(str(order_set), child_result.tree)
+            total_cost = child_result.attacker_cost+cost
             if not best_result or child_result.value < best_result.value or (child_result.value == best_result.value and
                                                                              total_cost < best_result.attacker_cost):
-                best_result = Result(funds=child_result.funds,node=node, order_set=attack.order_set,
+                best_result = Result(funds=child_result.funds,node=node, order_set=order_set,
                                      future_actions=child_result.actions, network=child_result.network,
                                      attacker_cost = total_cost,
                                      defender_cost = child_result.defender_cost)

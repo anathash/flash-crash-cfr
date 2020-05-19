@@ -54,20 +54,20 @@ class SingleAgentESSolver:
         solutions = {}
 #        portfolios = self.get_all_attack_portfolios(self.network.assets, len(self.network.assets))
         attacks = self.action_mgr.get_possible_attacks()
-        for attack in attacks:
+        for (order_set,cost) in attacks:
             net2 = copy.deepcopy(self.network)
-            net2.submit_sell_orders(attack.order_set)
+            net2.submit_sell_orders(order_set)
             net2.clear_order_book()
             funds = net2.get_funds_in_margin_calls()
             value = len(funds)
             for i in range(1, value + 1):
-                if i not in solutions or attack.cost <= solutions[i].cost:
-                    solutions[i] = Solution(self.network, attack.order_set, value, funds, attack.cost)
+                if i not in solutions or cost <= solutions[i].cost:
+                    solutions[i] = Solution(self.network, order_set, value, funds, cost)
         return solutions
 
     def get_attacks_in_budget(self, budget, include_opt_out):
         attacks = self.action_mgr.get_possible_attacks(budget)
-        return [(x.order_set, x.cost) for x in attacks if x.cost <= budget and (include_opt_out or x.cost > 0)]
+        return [x for x in attacks if x[1] <= budget and (include_opt_out or x[1] > 0)]
 
 
     def get_all_attack_portfolios2(self, n, assets, budget, order_set):

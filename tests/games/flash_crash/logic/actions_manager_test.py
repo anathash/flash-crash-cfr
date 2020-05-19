@@ -182,3 +182,54 @@ class TestActionsManager  (unittest.TestCase):
         actual_attacks.sort(key=lambda a: a[1])
         expected_attacks.sort(key=lambda a: a[1])
         self.assertListEqual(expected_attacks, actual_attacks)
+
+    def test_get_all_attacks(self):
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
+        assets = {'a1': a1, 'a2': a2}
+        mgr = ActionsManager(assets, 0.1)
+        expected_attacks = [([Sell('a1', 10)], 10),
+                            ([Sell('a2', 20)], 40),
+                            ([Sell('a1', 10), Sell('a2', 20)], 50),
+                            ([], 0)]
+        actual_attacks = mgr.get_possible_attacks()
+        actual_attacks.sort(key=lambda a: a[1])
+        expected_attacks.sort(key=lambda a: a[1])
+        self.assertListEqual(expected_attacks, actual_attacks)
+
+    def test_get_possible_attacks_no_history(self):
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
+        assets = {'a1': a1, 'a2': a2}
+        mgr = ActionsManager(assets, 0.1)
+        expected_attacks = [([Sell('a1', 10)], 10),
+                            ([Sell('a2', 20)], 40),
+                            ([], 0)]
+        actual_attacks = mgr.get_possible_attacks(budget=40)
+        actual_attacks.sort(key=lambda a: a[1])
+        expected_attacks.sort(key=lambda a: a[1])
+        self.assertListEqual(expected_attacks, actual_attacks)
+
+    def test_get_possible_attacks_no_budget(self):
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
+        assets = {'a1': a1, 'a2': a2}
+        history = {BUY:{'a1':2}, SELL:{'a1':1,'a2':2}}
+        mgr = ActionsManager(assets, 0.1)
+        expected_attacks = [([Sell('a1', 10)], 10),
+                            ([], 0)]
+        actual_attacks = mgr.get_possible_attacks(history=history)
+        actual_attacks.sort(key=lambda a: a[1])
+        expected_attacks.sort(key=lambda a: a[1])
+        self.assertListEqual(expected_attacks, actual_attacks)
+
+    def test_get_possible_attacks_zero_budget(self):
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
+        assets = {'a1': a1, 'a2': a2}
+        mgr = ActionsManager(assets, 0.1)
+        expected_attacks = [([], 0)]
+        actual_attacks = mgr.get_possible_attacks(budget=0)
+        actual_attacks.sort(key=lambda a: a[1])
+        expected_attacks.sort(key=lambda a: a[1])
+        self.assertListEqual(expected_attacks, actual_attacks)

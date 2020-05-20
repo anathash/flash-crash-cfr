@@ -189,8 +189,8 @@ class TestMinimax(unittest.TestCase):
         f1.marginal_call = MagicMock(return_value=False)
         f2.marginal_call = MagicMock()
         f2.marginal_call.side_effect = f1_margin_call_side_effect
-        SysConfig.set("MAX_NUM_ORDERS", 2)
-        result = single_agent(network, 200, 0.1)
+        actions_mgr = ActionsManager(network.assets, 0.1, 2)
+        result =single_agent(actions_mgr, network, 200)
         print(result.value)
         print(result.actions)
         self.assertEqual(result.value, -1)

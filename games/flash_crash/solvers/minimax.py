@@ -44,6 +44,11 @@ def append_actions(order_set,future_actions ):
     return best_actions
 
 
+def single_agent(network: AssetFundsNetwork,attacker_budget, step_order_size):
+    action_manager = ActionsManager(network.assets, step_order_size, SysConfig.get("MAX_NUM_ORDERS"))
+    network.limit_trade_step = False
+    return minimax2(action_manager, ATTACKER, network, attacker_budget, 0, True)
+
 def minimax2(actions_mgr, turn, network: AssetFundsNetwork, attacker_budget, defender_budget, include_opt_out = True):
  #   print(turn + ' Defender:' + str(defender_budget) + ' Attacker' + str(attacker_budget))
     best_result = None

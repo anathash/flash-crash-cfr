@@ -1,12 +1,15 @@
 import unittest
 from math import inf
+from unittest.mock import MagicMock
 
 import AssetFundNetwork
+from MarketImpactCalculator import MarketImpactCalculator
+from Orders import Sell
 from SysConfig import SysConfig
 
 from constants import ATTACKER, MARKET, DEFENDER
 from solvers.ActionsManager import ActionsManager
-from solvers.minimax import minimax, MiniMaxTree, minimax2, alphabeta
+from solvers.minimax import minimax, MiniMaxTree, minimax2, alphabeta, single_agent
 from mocks import MockFund, MockMarketImpactTestCalculator
 
 
@@ -169,6 +172,47 @@ class TestMinimax(unittest.TestCase):
 
     def test_alpha_beta(self):
         self.run_one_time_attack_tree_test(pruning=True)
+
+    def test_single_agent(self):
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
+
+        f1 = AssetFundNetwork.Fund('f1', {'a2': 10}, 100, 1, 1)
+        f2 = AssetFundNetwork.Fund('f2', {'a1': 20}, 100, 1, 1)
+        mi_calc = MarketImpactCalculator()
+        mi_calc.get_updated_price = MagicMock()
+        mi_calc.get_updated_price.side_effect = update_price_side_effects
+        network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1, 'f2': f2}, assets={'a1': a1, 'a2':a2},
+                                                     mi_calc=mi_calc, limit_trade_step=True)
+
+
+        f1.marginal_call = MagicMock(return_value=False)
+        f2.marginal_call = MagicMock()
+        f2.marginal_call.side_effect = f1_margin_call_side_effect
+        SysConfig.set("MAX_NUM_ORDERS", 2)
+        result = single_agent(network, 200, 0.1)
+        print(result.value)
+        print(result.actions)
+        self.assertEqual(result.value, -1)
+        self.assertListEqual(result.actions, [[Sell('a1',20)], ['MARKET']])
+
+
+def f1_margin_call_side_effect(assets):
+    return assets['a1'].price == 0.25
+
+
+def update_price_side_effects(num_shares, asset, sign):
+    if sign > 0:
+        if num_shares == 10:
+            return 1.5
+        if num_shares == 20:
+            return 2
+    else:
+        if num_shares == 10:
+            return 0.5
+        if num_shares == 20:
+            return 0.25
+
 
 if __name__ == '__main__':
     unittest.main()

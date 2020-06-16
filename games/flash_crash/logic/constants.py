@@ -2,8 +2,8 @@ BUDGETS = [5,10,20] #millions of dollars
 
 CHANCE = "CHANCE"
 BUDGETS = []
-ATTACKER = 1
-DEFENDER = -1
+ATTACKER = -1
+DEFENDER = 1
 MARKET = 0
 BUY="BUY"
 SELL="SELL"

@@ -8,6 +8,7 @@ class GameStateBase:
         self.parent = parent
         self.to_move = to_move
         self.actions = actions
+        self.value = None
 
     def play(self, action):
         return self.children[action]
@@ -20,3 +21,9 @@ class GameStateBase:
 
     def inf_set(self):
         raise NotImplementedError("Please implement information_set method")
+
+    def set_value(self, value):
+        self.value = value
+
+    def get_value(self):
+        return self.value

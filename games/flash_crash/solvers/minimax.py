@@ -45,8 +45,11 @@ def append_actions(order_set,future_actions ):
 
 
 def single_agent(action_manager,network: AssetFundsNetwork, attacker_budget):
+    step = network.limit_trade_step
     network.limit_trade_step = False
-    return minimax2(action_manager, ATTACKER, network, attacker_budget, 0, True)
+    ret_val =  minimax2(action_manager, ATTACKER, network, attacker_budget, 0, True)
+    network.limit_trade_step = step
+    return ret_val
 
 def minimax2(actions_mgr, turn, network: AssetFundsNetwork, attacker_budget, defender_budget, include_opt_out = True):
  #   print(turn + ' Defender:' + str(defender_budget) + ' Attacker' + str(attacker_budget))

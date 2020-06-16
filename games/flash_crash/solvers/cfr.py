@@ -106,6 +106,7 @@ class CounterfactualRegretMinimizationBase:
             return node.evaluation()
         for action in node.actions:
             value +=  self.nash_equilibrium[node.inf_set()][action] * self.__value_of_the_game_state_recursive(node.play(action))
+        node.set_value(value)
         return value
 
 

@@ -29,6 +29,7 @@ class FlashCrashRootChanceGameState(GameStateBase):
             ) for budget in attacker_budgets
         }
         self._chance_prob = 1. / len(self.children)
+        self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
 
     def is_terminal(self):
         return False
@@ -63,9 +64,6 @@ class FlashCrashGameStateBase(GameStateBase):
 
         return -1*self.af_network.count_margin_calls()
 
-    def is_terminal(self):
-        return self.af_network.margin_calls() or self.actions == []
-
     def _update_asset_history(self, order_set, buy_sell_key):
         history_assets_dict2 = copy.deepcopy(self.history_assets_dict)
         for order in order_set:
@@ -78,7 +76,8 @@ class FlashCrashGameStateBase(GameStateBase):
 class MarketMoveGameState(FlashCrashGameStateBase):
 
     def __init__(self, parent,  actions_manager, to_move, history_assets_dict, budget, af_network, actions_history):
-        if af_network.no_more_sell_orders():
+        self.terminal = af_network.no_more_sell_orders()
+        if self.terminal:
             actions = []
         else:
             net2 = copy_network(af_network)
@@ -105,18 +104,24 @@ class MarketMoveGameState(FlashCrashGameStateBase):
                     net2,
                     actions_history2
                 )
+        self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
 
     def chance_prob(self):
         return 1
 
+    def is_terminal(self):
+        return self.terminal
+
 
 class AttackerMoveGameState(FlashCrashGameStateBase):
     def __init__(self, parent, actions_manager, to_move, history_assets_dict, budget, af_network, actions_history):
-        if af_network.margin_calls():
-            str_order_sets = []
-        else:
-            attacks = actions_manager.get_possible_attacks(budget.attacker, history_assets_dict)
-            str_order_sets = [str(x[0]) for x in attacks]
+#        if af_network.margin_calls():
+#            str_order_sets = []
+#        else:
+#            attacks = actions_manager.get_possible_attacks(budget.attacker, history_assets_dict)
+#            str_order_sets = [str(x[0]) for x in attacks]
+        attacks = actions_manager.get_possible_attacks(budget.attacker, history_assets_dict)
+        str_order_sets = [str(x[0]) for x in attacks]
         super().__init__(parent=parent,  to_move=to_move, actions = str_order_sets,
                          history_assets_dict=history_assets_dict, af_network=af_network, budget=budget, actions_history=actions_history)
         self._information_set = ".{0}.{1}".format(str(budget.attacker), 'A_HISTORY:' + str(actions_history[SELL]))
@@ -138,6 +143,10 @@ class AttackerMoveGameState(FlashCrashGameStateBase):
                 actions_history2
             )
 
+        self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
+
+    def is_terminal(self):
+        return False
 
 class DefenderMoveGameState(FlashCrashGameStateBase):
 
@@ -165,7 +174,10 @@ class DefenderMoveGameState(FlashCrashGameStateBase):
                 actions_history2
             )
         self._information_set = ".{0}.{1}".format(str(budget.defender), 'D_HISTORY:' + str(actions_history[BUY]))
+        self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
 
+    def is_terminal(self):
+        return False
 
 
 

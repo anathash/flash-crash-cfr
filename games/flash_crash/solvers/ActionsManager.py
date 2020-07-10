@@ -1,11 +1,13 @@
 import copy
 
+import numpy
 from sortedcontainers import SortedDict, SortedList, SortedKeyList
 import AssetFundNetwork
 from constants import MAX_ORDERS_PER_ASSETS, SELL, BUY
 import itertools
 from Orders import Sell, Buy
 from SysConfig import SysConfig
+from flash_crash_players_cfr import AttackerMoveGameState, DefenderMoveGameState
 from solvers.common import copy_network
 
 
@@ -13,15 +15,15 @@ class Attack:
     def __init__(self, order_set, cost):
         self.cost = cost
         self.order_set = order_set
-        self.asset_list = [x.asset_symbol for x in order_set]
+        self.assets_dict = {x.asset_symbol:x.num_shares for x in order_set}
 
     def __eq__(self, other):
         return isinstance(other, Attack) and self.cost == other.cost and self.order_set == other.order_set and \
-               self.asset_list == other.asset_list
+               self.assets_dict == other.assets_dict
 
 
 class ActionsManager:
-    def __init__(self, assets, step_order_size, max_order_num=1):
+    def __init__(self, assets, step_order_size, max_order_num=1, attacker_budgets= None, portfolios_probs= None):
         self.__step_order_size = step_order_size
         self.__max_order_num = max_order_num
         self.__id_to_sym = {}
@@ -33,12 +35,46 @@ class ActionsManager:
         self.__sorted_keys = SortedKeyList(self.__portfolios_dict.keys())
         self.__sell_all_assets = [Sell(a.symbol, self.__step_order_size * a.daily_volume)
                                   for a in assets.values()]
+        self.__updated_asset = None
+        self.__portfolios_probs = portfolios_probs
+        self.__id_to_portfolio = {}
+        if not portfolios_probs:
+            if attacker_budgets:
+                self.__set_uniform_portfolios_probabilities(attacker_budgets)
 
+    def get_portfolios(self):
+        return self.__id_to_portfolio
+
+    def get_portfolios_prob(self):
+        return  self.__portfolios_probs
+
+    def __set_uniform_portfolios_probabilities(self, attacker_budgets):
+        attackers_portfolio_num = {x:0 for x in attacker_budgets}
+
+        for cost, portfolios_list in self.__portfolios_dict.items():
+            for a in attacker_budgets:
+                if a >= cost:
+                    attackers_portfolio_num[a] += len(portfolios_list)
+        attacker_prob = 1./len(attacker_budgets)
+        i = 0
+        portfolios_probs = {}
+        for cost, portfolios_list in self.__portfolios_dict.items():
+            for p in portfolios_list:
+                i+=1
+                id = 'p' + str(i)
+                self.__id_to_portfolio[id] = p
+                portfolios_probs[id] = 0
+                for a in attacker_budgets:
+                    if a >= cost:
+                        portfolios_probs[id] += attacker_prob/attackers_portfolio_num[a]
+        assert (numpy.isclose(sum(portfolios_probs.values()), 1.0, rtol=1e-05, atol=1e-08, equal_nan=False))
+#        assert (1 == sum(portfolios_probs.values()))
+        self.__portfolios_probs = portfolios_probs
 
     @staticmethod
     def __filter_from_history(action, history, key):
         assets_in_limit = [k  for k, v in history[key].items() if v == MAX_ORDERS_PER_ASSETS]
-        for asset in action.asset_list:
+        for asset in action.assets_dict:
             if asset in assets_in_limit:
                 return True
         return False
@@ -52,7 +88,7 @@ class ActionsManager:
         return Buy(asset.symbol, size * asset.daily_volume)
 
     @staticmethod
-    def __get_defenses_in_budget(assets, single_asset_orders, asset_price_lambda, budget):
+    def __get_defenses_in_budget(assets, single_asset_orders, asset_price_lambda, budget, asset_filter_sym=None):
         actions = []
         orders_in_budget = [o for o in single_asset_orders if
                             asset_price_lambda(assets[o.asset_symbol]) * o.num_shares <= budget]
@@ -61,6 +97,8 @@ class ActionsManager:
             # attackers buys before game start
             for orders in action_subset:
                 orders_list = list(orders)
+                if asset_filter_sym and (asset_filter_sym not in [x.asset_symbol for x in orders]):
+                    continue
                 attack_cost = sum(
                     [asset_price_lambda(assets[order.asset_symbol]) * order.num_shares for order in orders_list])
 
@@ -111,7 +149,58 @@ class ActionsManager:
             portfolios_dict[attack.cost].append(attack)
         return portfolios_dict
 
-    def get_possible_attacks(self, budget = None, history = []):
+    def __rebuild_portfolio_dict(self, asset_sym,  old_price, new_price):
+        new_portfolios_dict = {}
+        price_delta = new_price - old_price
+        for cost, attacks in self.__portfolios_dict.items():
+            for attack in attacks:
+                if asset_sym in attack.assets_dict:
+                    new_cost = attack.cost + price_delta * attack.assets_dict[asset_sym]
+                else:
+                    new_cost = attack.cost
+                if new_cost not in new_portfolios_dict:
+                    new_portfolios_dict[new_cost] = []
+                new_portfolios_dict[new_cost].append(attack)
+        return new_portfolios_dict
+
+    def update_asset(self, asset_sym, old_price, new_price):
+        self.__updated_asset = asset_sym
+        self.__portfolios_dict = self.__rebuild_portfolio_dict(asset_sym,  old_price, new_price)
+        self.__sorted_keys = SortedKeyList(self.__portfolios_dict.keys())
+
+    def __build_actions(self, single_orders, no_more_sell_orders):
+        actions = []
+        for i in range(1, len(single_orders)+1):
+            action_subset = itertools.combinations(single_orders, i)
+            for orders in action_subset:
+                orders_list = list(orders)
+                remaining_orders = [x for x in single_orders if x not in orders_list]
+                actions.append({'action_subset': list(action_subset), 'remaining_orders': remaining_orders})
+        if not no_more_sell_orders:
+            actions.append({'action_subset': [] ,'remaining_orders': single_orders})
+
+    def __attack_subset(self, order_set1, order_set2):
+        if len(order_set1)> len(order_set2):
+            return
+        for order in order_set1:
+            if order not in order_set2:
+                return False
+        return True
+
+    def get_possible_attacks_from_portfolio(self, attack, no_more_sell_orders):
+        actions = []
+        id2po = self.__id_to_portfolio.values()
+        optional_attacks = [x.order_set for x in id2po if self.__attack_subset(x.order_set, attack)]
+        for a in optional_attacks:
+            if not a and no_more_sell_orders:
+                continue
+            remaining_orders = [x for x in attack if x not in a]
+            actions.append({'action_subset': a, 'remaining_orders': remaining_orders})
+#        if not no_more_sell_orders:
+#            actions.append({'action_subset': [], 'remaining_orders': attack.assets_dict})
+        return actions
+
+    def get_possible_attacks(self, budget = None, history=[], asset_filter_sym=None):
         if budget is None:
             attacks_in_budget = self.__portfolios_dict.values()
         else:
@@ -119,15 +208,18 @@ class ActionsManager:
             attacks_in_budget = [self.__portfolios_dict[cost] for cost in attacks_costs_in_budget]
 
         attacks_in_budget_flat = [attack for attack_list in attacks_in_budget for attack in attack_list]
+        if asset_filter_sym:
+            attacks_in_budget_flat= [x for x in attacks_in_budget_flat if asset_filter_sym in x.assets_dict]
         if history:
             return [(attack.order_set, attack.cost) for attack in attacks_in_budget_flat
                     if not self.__filter_from_history(attack, history, SELL)]
         else:
             return [(attack.order_set, attack.cost) for attack in attacks_in_budget_flat]
 
-
-    def get_possible_defenses(self, af_network, budget, history_assets_dict={}):
+    def get_possible_defenses(self, af_network, budget, history_assets_dict={}, asset_filter_sym=None):
         funds_under_risk = self.__funds_under_risk(copy_network(af_network))
+        if not  funds_under_risk:
+            return [([], 0)]
         asset_syms = set()
         for f in funds_under_risk:
             asset_syms.update(af_network.funds[f].portfolio.keys())
@@ -138,7 +230,14 @@ class ActionsManager:
                                  or history_assets_dict[BUY][d.asset_symbol] < MAX_ORDERS_PER_ASSETS]
         else:
             filtered_defenses = single_asset_defenses
-        actions = self.__get_defenses_in_budget(assets, filtered_defenses, lambda a: a.price, budget)
+        actions = self.__get_defenses_in_budget(assets, filtered_defenses, lambda a: a.price, budget, asset_filter_sym)
         actions.append(([], 0))
         return actions
+
+    def get_additional_actions(self, state):
+        if isinstance(state, AttackerMoveGameState):
+            return self.get_possible_attacks(state.budget.attacker, self.additional_asset)
+        if isinstance(state, DefenderMoveGameState):
+            return self.get_additional_defenses(state.budget.attacker, self.additional_asset)
+        return []
 

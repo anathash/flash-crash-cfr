@@ -2,9 +2,17 @@ from constants import MARKET
 from games.kunh.constants import CHANCE
 
 
+
+
 class GameStateBase:
+    num_nodes = 0
+    @staticmethod
+    def init_num_nodes():
+        GameStateBase.num_nodes = 0
 
     def __init__(self, parent, to_move, actions):
+        GameStateBase.num_nodes +=1
+        print(GameStateBase.num_nodes)
         self.parent = parent
         self.to_move = to_move
         self.actions = actions

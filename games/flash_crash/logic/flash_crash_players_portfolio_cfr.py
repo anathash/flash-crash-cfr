@@ -42,7 +42,7 @@ class PortfolioFlashCrashGameStateBase(GameStateBase):
 class PortfolioFlashCrashRootChanceGameState(GameStateBase):
     def __init__(self, action_mgr, af_network:AssetFundsNetwork, defender_budget):
         self._chance_prob = action_mgr.get_portfolios_prob()
-        portfolios = {x:y for x,y in action_mgr.get_portfolios().items() if self._chance_prob[x] >0 }
+        portfolios = {x:y.order_set for x,y in action_mgr.get_portfolios().items() if self._chance_prob[x] >0 }
         super().__init__(parent=None, to_move=CHANCE, actions = portfolios.keys())
         self.af_network = af_network
         self.children = {

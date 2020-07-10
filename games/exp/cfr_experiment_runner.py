@@ -7,9 +7,11 @@ from math import ceil, inf
 import numpy
 
 from SysConfig import SysConfig
+from bases import GameStateBase
 from constants import ATTACKER
 from exp.network_generators import get_network_from_dir, gen_new_network
 from flash_crash_players_cfr import FlashCrashRootChanceGameState
+from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
 from solvers.ActionsManager import ActionsManager
 from solvers.minimax import minimax, minimax2, alphabeta, single_agent
 from solvers.cfr import VanillaCFR
@@ -132,19 +134,58 @@ def run_experiments(network, lower_bound, jump, upper_bound, dirname, iterations
         defender_budget += jump
 
 
-def count_game_states(game_network, lower_bound, jump, upper_bound):
+def count_game_states_old(game_network, lower_bound, ratios):
     network.limit_trade_step = True
     defender_budget = lower_bound
-    ratios = [0.75, 1, 1.25, 1.5]
     actions_mgr = ActionsManager(network.assets, SysConfig.get("STEP_ORDER_SIZE"), 1)
-    while defender_budget <= upper_bound:
-        initial_network = copy.deepcopy(game_network)
-        attacker_budgets = [int(defender_budget * r) for r in ratios]
+    initial_network = copy.deepcopy(game_network)
+    attacker_budgets = [int(defender_budget * r) for r in ratios]
+    root = FlashCrashRootChanceGameState(action_mgr=actions_mgr, af_network=initial_network, defender_budget=defender_budget,
+                                         attacker_budgets=attacker_budgets)
+    print('num_states =%d, num_assets=%d, num_funds = %d, num_attackers = %d' % (root.tree_size, len(game_network.assets),
+          len(game_network.funds), len(ratios)))
+
+def count(state, counter):
+    for kid in state.children.values():
+        counter += count(kid, 0)
+    return counter +1
+
+
+def count_game_states(game_network, lower_bound, ratios, portfolios = False):
+    network.limit_trade_step = True
+    defender_budget = lower_bound
+    initial_network = copy.deepcopy(game_network)
+    attacker_budgets = [int(defender_budget * r) for r in ratios]
+    if portfolios:
+        actions_mgr = ActionsManager(assets=network.assets,
+                                     step_order_size=SysConfig.get("STEP_ORDER_SIZE"),
+                                     max_order_num=1,
+                                     attacker_budgets=attacker_budgets)
+        root = PortfolioFlashCrashRootChanceGameState(action_mgr=actions_mgr, af_network=initial_network,
+                                                      defender_budget=defender_budget)
+    else:
+        actions_mgr = ActionsManager(network.assets, SysConfig.get("STEP_ORDER_SIZE"), 1)
         root = FlashCrashRootChanceGameState(action_mgr=actions_mgr, af_network=initial_network, defender_budget=defender_budget,
                                              attacker_budgets=attacker_budgets)
-        print('num_states =%d, num_assets=%d, num_funds = %d, num_attackers = %d' % (root.tree_size, len(game_network.assets),
-              len(game_network.funds), len(ratios)))
-        defender_budget += jump
+    print (count(root, 0))
+    print('num_states =%d, num_assets=%d, num_funds = %d, num_attackers = %d' % (root.tree_size, len(game_network.assets),
+          len(game_network.funds), len(ratios)))
+
+def count_game_states_portfolios(game_network, lower_bound, ratios):
+    network.limit_trade_step = True
+    defender_budget = lower_bound
+    attacker_budgets = [int(defender_budget * r) for r in ratios]
+    actions_mgr = ActionsManager(assets=network.assets,
+                                 step_order_size=SysConfig.get("STEP_ORDER_SIZE"),
+                                 max_order_num=1,
+                                 attacker_budgets=attacker_budgets)
+    initial_network = copy.deepcopy(game_network)
+
+    root = PortfolioFlashCrashRootChanceGameState(action_mgr=actions_mgr, af_network=initial_network,
+                                                  defender_budget=defender_budget)
+    print('num_states =%d, num_assets=%d, num_funds = %d, num_attackers = %d' % (root.tree_size, len(game_network.assets),
+          len(game_network.funds), len(ratios)))
+
 
 def validate_results(filename):
     with open(filename,'r') as res_file:
@@ -174,15 +215,22 @@ def validate_results(filename):
 
 if __name__ == "__main__":
 
-    dirname ='../../results/Tue_May_26_11_14_51_2020/'
+   # dirname ='../../results/Tue_May_26_11_14_51_2020/'
+    #dirname ='../../results/Wed_Jul__8_14_25_11_2020/'
     #network = get_network_from_dir(dirname)
-    dirname, network = gen_new_network(10)
-    count_game_states(network, lower_bound=200000000, jump = 400000000,upper_bound= 4000000000)
+    ratios = [1, 1.25, 1.5]
+    dirname, network = gen_new_network(2)
+    count_game_states(network, lower_bound=2000000000, ratios=ratios, portfolios=True)
+ #   GameStateBase.init_num_nodes()
+   # count_game_states(network, lower_bound=2000000000, ratios=ratios, portfolios=False)
+
+    #count_game_states_portfolios(network, lower_bound=700000000, ratios=ratios)
     exit(0)
 
     network.limit_trade_step = True
-    run_experiments(network, lower_bound=200000000, jump = 400000000,upper_bound= 4000000000, dirname=dirname, iterations = 10)
-#    run_experiments(network, lower_bound=200000000, jump = 400000000,upper_bound= 600000000, dirname=dirname, iterations = 1000)
+    run_experiments(network, lower_bound=400000000, jump = 400000000,upper_bound= 4000000000, dirname=dirname, iterations = 10)
+
+    run_experiments(network, lower_bound=200000000, jump = 400000000,upper_bound= 600000000, dirname=dirname, iterations = 1000)
     validate_results(dirname+'all_algs_results.json')
 
 

@@ -22,12 +22,11 @@ class PlayersHiddenInfo:
 class PortfolioFlashCrashGameStateBase(GameStateBase):
 
     def __init__(self, parent, to_move, actions, af_network, players_info, actions_history):
-        super().__init__(parent = parent, to_move = to_move,actions=actions)
+        super().__init__(parent=parent, to_move = to_move,actions=actions)
         self.actions_history=actions_history
         self.af_network = af_network
         self.players_info = players_info
         self.children = {}
-
 
     def inf_set(self):
         return self._information_set
@@ -42,7 +41,7 @@ class PortfolioFlashCrashGameStateBase(GameStateBase):
 class PortfolioFlashCrashRootChanceGameState(GameStateBase):
     def __init__(self, action_mgr, af_network:AssetFundsNetwork, defender_budget):
         self._chance_prob = action_mgr.get_portfolios_prob()
-        portfolios = {x:y.order_set for x,y in action_mgr.get_portfolios().items() if self._chance_prob[x] >0 }
+        portfolios = {x: y.order_set for x, y in action_mgr.get_portfolios().items() if x in self._chance_prob}
         super().__init__(parent=None, to_move=CHANCE, actions = portfolios.keys())
         self.af_network = af_network
         self.children = {
@@ -111,6 +110,8 @@ class PortfolioMarketMoveGameState(PortfolioFlashCrashGameStateBase):
 class PortfolioAttackerMoveGameState(PortfolioFlashCrashGameStateBase):
     def __init__(self, parent, actions_manager, to_move, players_info, af_network, actions_history):
         actions = actions_manager.get_possible_attacks_from_portfolio(players_info.attacker_attack, af_network.no_more_sell_orders())
+        self.terminal = not actions
+
         super().__init__(parent=parent,  to_move=to_move, actions = [str(x['action_subset']) for x in actions ],
                           af_network=af_network, players_info=players_info, actions_history=actions_history)
 
@@ -133,7 +134,7 @@ class PortfolioAttackerMoveGameState(PortfolioFlashCrashGameStateBase):
         self._information_set = ".{0}.{1}".format(players_info.attacker_pid, 'A_HISTORY:' + str(actions_history[SELL]))
 
     def is_terminal(self):
-        return False
+        return self.terminal
 
 
 class PortfolioDefenderMoveGameState(PortfolioFlashCrashGameStateBase):

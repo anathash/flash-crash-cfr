@@ -1,5 +1,5 @@
+from solvers.utils import init_sigma, init_empty_node_maps
 from constants import ATTACKER, DEFENDER
-from common.utils import init_sigma, init_empty_node_maps
 
 class CounterfactualRegretMinimizationBase:
 
@@ -24,7 +24,11 @@ class CounterfactualRegretMinimizationBase:
             return
         i = node.inf_set()
         if node.is_chance() or node.is_market():
-            self.nash_equilibrium[i] = {a:node.chance_prob() for a in node.actions}
+            chance_probs = node.chance_prob()
+            if isinstance(chance_probs, dict):
+                self.nash_equilibrium[i] = {a:chance_probs[a] for a in node.actions}
+            else:
+                self.nash_equilibrium[i] = {a: chance_probs for a in node.actions}
         else:
             sigma_sum = sum(self.cumulative_sigma[i].values())
             if(sigma_sum == 0):
@@ -49,6 +53,13 @@ class CounterfactualRegretMinimizationBase:
 #        print(y)
 
 
+    def total_positive_regret(self):
+        pos_r = 0
+        ## sum? look in paper
+        for actions_regret_dict in self.cumulative_regrets.values():
+            pos_r += sum([max(x,0) for x in actions_regret_dict.values()])
+        return  pos_r
+
     def run(self, iterations):
         raise NotImplementedError("Please implement run method")
 
@@ -65,8 +76,15 @@ class CounterfactualRegretMinimizationBase:
                 # if node is a chance node, lets sample one child node and proceed normally
                 return self._cfr_utility_recursive(state.sample_one(), reach_attacker, reach_defender)
             else:
-                chance_outcomes = {state.play(action) for action in state.actions}
-                return state.chance_prob() * sum([self._cfr_utility_recursive(outcome, reach_attacker, reach_defender) for outcome in chance_outcomes])
+                chance_probs = state.chance_prob()
+
+                if isinstance(chance_probs, dict):
+                    utilities = {action: self._cfr_utility_recursive(state.play(action), reach_attacker, reach_defender)
+                                 for action in state.actions}
+                    return sum([chance_probs[action] *utilities[action] for action in state.actions])
+                else:
+                    chance_outcomes = {state.play(action) for action in state.actions}
+                    return chance_probs * sum([self._cfr_utility_recursive(outcome, reach_attacker, reach_defender) for outcome in chance_outcomes])
 
         if state.is_market():
             return self._cfr_utility_recursive(state.play(state.actions[0]), reach_attacker, reach_defender)
@@ -103,7 +121,9 @@ class CounterfactualRegretMinimizationBase:
     def __value_of_the_game_state_recursive(self, node):
         value = 0.
         if node.is_terminal():
-            return node.evaluation()
+            value = node.evaluation()
+            node.set_value(value)
+            return value
         for action in node.actions:
             value +=  self.nash_equilibrium[node.inf_set()][action] * self.__value_of_the_game_state_recursive(node.play(action))
         node.set_value(value)
@@ -115,10 +135,10 @@ class VanillaCFR(CounterfactualRegretMinimizationBase):
     def __init__(self, root):
         super().__init__(root = root, chance_sampling = False)
 
-    def run(self, iterations = 1):
+    def run(self, round = 0, iterations = 1):
         for i in range(0, iterations):
-            print('iteration ' + str(i))
-            self._cfr_utility_recursive(self.root, 1, 1)
+            print('iteration ' + str(round) + '_' + str(i))
+            u = self._cfr_utility_recursive(self.root, 1, 1)
             # since we do not update sigmas in each information set while traversing, we need to
             # traverse the tree to perform to update it now
             self.__update_sigma_recursively(self.root)

@@ -45,8 +45,11 @@ class ActionsManager:
     def get_portfolios(self):
         return self.__id_to_portfolio
 
+    def get_probable_portfolios(self):
+        return {x:y for x,y in self.__id_to_portfolio.items() if x in self.__portfolios_probs}
+
     def get_portfolios_prob(self):
-        return  self.__portfolios_probs
+        return self.__portfolios_probs
 
     def __set_uniform_portfolios_probabilities(self, attacker_budgets):
         attackers_portfolio_num = {x:0 for x in attacker_budgets}
@@ -69,7 +72,8 @@ class ActionsManager:
                         portfolios_probs[id] += attacker_prob/attackers_portfolio_num[a]
         assert (numpy.isclose(sum(portfolios_probs.values()), 1.0, rtol=1e-05, atol=1e-08, equal_nan=False))
 #        assert (1 == sum(portfolios_probs.values()))
-        self.__portfolios_probs = portfolios_probs
+#        self.__portfolios_probs = portfolios_probs
+        self.__portfolios_probs = {x: y for x, y in portfolios_probs.items() if portfolios_probs[x] > 0}
 
     @staticmethod
     def __filter_from_history(action, history, key):

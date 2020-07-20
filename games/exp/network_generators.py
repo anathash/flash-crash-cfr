@@ -67,9 +67,9 @@ def get_network_from_dir(dirname):
     return AssetFundsNetwork.load_from_file(dirname+'/network.json', ExponentialMarketImpactCalculator(config.impact_calc_constant))
 
 
-def gen_new_network(num_assets = 10, uniform = True):
+def gen_new_network(num_assets = 10, uniform = True, results_dir = '../../results/'):
     now = time.ctime()
-    dirname = '../../results/' + now.replace(":", "_").replace(" ", "_") + '/'
+    dirname = results_dir + now.replace(":", "_").replace(" ", "_") + '/'
     if not os.path.exists(dirname):
         os.mkdir(dirname)
     config = GameConfig()

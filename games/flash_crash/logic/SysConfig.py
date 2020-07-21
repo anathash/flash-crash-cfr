@@ -7,8 +7,9 @@ class SysConfig:
               "DENSITY": 0.5,
               "STEP_ORDER_SIZE": 0.0075,
               "MAX_NUM_ORDERS": 2,
-              "TIME_STEP_MINUTES": 1,
-              "DAILY_PORTION_PER_MIN": 0.001, # finish a 1.5% order in 15 minutes
+              "TIME_STEP_MINUTES": 5,
+              "DAILY_PORTION_PER_MIN": 0.01, # finish a 1.5% order in 15 minutes
+             # "DAILY_PORTION_PER_MIN": 0.001, # finish a 1.5% order in 15 minutes
     }
 
     #             "ORDER_SIZES": [0.75, 1.75],

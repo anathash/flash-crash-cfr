@@ -388,6 +388,7 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         network = AssetFundNetwork.AssetFundsNetwork(funds={'f1': f1}, assets={'a1': a1},
                                                      mi_calc=mi_calc)
         SysConfig.set('TIME_STEP_MINUTES',1)
+        SysConfig.set('DAILY_PORTION_PER_MIN', 0.001)
         network.submit_buy_orders([Buy('a1',2)])
         log = network.simulate_trade()
         self.assertDictEqual({'a1': '1->1.5'}, log)

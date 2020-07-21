@@ -196,7 +196,7 @@ class ActionsManager:
         id2po = self.__id_to_portfolio.values()
         optional_attacks = [x.order_set for x in id2po if self.__attack_subset(x.order_set, attack)]
         for a in optional_attacks:
-            if not a and no_more_sell_orders:
+            if not a and no_more_sell_orders: #nope actions not allowed if sell book is empty
                 continue
             remaining_orders = [x for x in attack if x not in a]
             actions.append({'action_subset': a, 'remaining_orders': remaining_orders})

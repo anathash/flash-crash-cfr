@@ -76,7 +76,7 @@ class FlashCrashGameStateBase(GameStateBase):
 class MarketMoveGameState(FlashCrashGameStateBase):
 
     def __init__(self, parent,  actions_manager, to_move, history_assets_dict, budget, af_network, actions_history):
-        self.terminal = af_network.no_more_sell_orders()
+        self.terminal = af_network.order_books_empty()
         if self.terminal:
             actions = []
         else:

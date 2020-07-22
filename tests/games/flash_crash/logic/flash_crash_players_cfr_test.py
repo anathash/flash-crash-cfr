@@ -24,13 +24,14 @@ def update_price_side_effects(num_shares, asset, sign):
 class TestFlashCrashPlayers_CFR  (unittest.TestCase):
 
     @staticmethod
-    def fill_dict(name, to_move, actions, history_assets_dict, budget, actions_history, inf_set, terminal=False, eval=None):
-        return{'name':name,'to_move':to_move,'actions':actions,'actions_history':actions_history,
+    def fill_dict(tree_size, name, to_move, actions, history_assets_dict, budget, actions_history, inf_set, terminal=False, eval=None):
+        return{'tree_size':tree_size, 'name':name,'to_move':to_move,'actions':actions,'actions_history':actions_history,
                'budget':budget,'history_assets_dict':history_assets_dict,'inf_set':inf_set,
                'terminal':terminal, 'eval':eval}
 
     def cmp_node(self, expected_node, actual_node):
         print(expected_node['name'])
+        self.assertEqual(expected_node['tree_size'], actual_node.tree_size)
         self.assertEqual(expected_node['to_move'], actual_node.to_move)
         self.assertCountEqual(expected_node['actions'], actual_node.actions)
         self.assertEqual(expected_node['inf_set'], actual_node.inf_set())
@@ -74,6 +75,7 @@ class TestFlashCrashPlayers_CFR  (unittest.TestCase):
                                                     attacker_budgets=[40, 30])
         expected_tree = self.gen_tree()
         self.assertEqual(actual_tree.chance_prob(), 1./2)
+        self.assertEqual(actual_tree.tree_size, 15)
         self.cmp_tree(expected_tree, actual_tree)
 
 
@@ -89,38 +91,38 @@ class TestFlashCrashPlayers_CFR  (unittest.TestCase):
         buy = str([Buy('a1', 50)])
         nope = str([])
         buy_actions = [nope,buy ]
-        root = {'name':'root', 'to_move':CHANCE,'actions':['40','30'],  'inf_set':'.', 'terminal':False }
+        root = {'tree_size':15, 'name':'root', 'to_move':CHANCE,'actions':['40','30'],  'inf_set':'.', 'terminal':False }
         price_bump_log = "{'a1': '1->1.5'}"
 
-        node_1_0 = self.fill_dict(name ='node_1_0',to_move=ATTACKER, actions = [nope] , history_assets_dict={BUY:{},SELL:{}},
+        node_1_0 = self.fill_dict(tree_size= 7,name ='node_1_0',to_move=ATTACKER, actions = [nope] , history_assets_dict={BUY:{},SELL:{}},
                                   budget=Budget(attacker=40,defender=50), actions_history={BUY:[],SELL:[], SIM_TRADE:[]},
                                   inf_set= '.40.A_HISTORY:[]')
 
-        node_1_0_0 = self.fill_dict(name ='node_1_0_0',to_move=DEFENDER, actions=buy_actions,
+        node_1_0_0 = self.fill_dict(tree_size=6 ,name ='node_1_0_0',to_move=DEFENDER, actions=buy_actions,
                                     history_assets_dict={BUY: {}, SELL: {}},
                                     budget=Budget(attacker=40, defender=50),
                                     actions_history={BUY: [], SELL: [nope], SIM_TRADE: []}, inf_set='.50.D_HISTORY:[]')
 
-        node_1_0_0_0 = self.fill_dict(name ='node_1_0_0_0',to_move=MARKET, actions=[price_bump_log], history_assets_dict={BUY: {'a1':1}, SELL: {}},
+        node_1_0_0_0 = self.fill_dict(tree_size= 4,name ='node_1_0_0_0',to_move=MARKET, actions=[price_bump_log], history_assets_dict={BUY: {'a1':1}, SELL: {}},
                                     budget=Budget(attacker=40, defender=0),
                                     actions_history={BUY: [buy], SELL: [nope], SIM_TRADE: []},
                                     inf_set=".MARKET_HISTORY:[].BUY:{'a1': 50}.SELL:{}")
 
-        node_1_0_0_0_0 = self.fill_dict(name='node_1_0_0_0_0', to_move=ATTACKER, actions=[nope],
+        node_1_0_0_0_0 = self.fill_dict(tree_size= 3,name='node_1_0_0_0_0', to_move=ATTACKER, actions=[nope],
                                   history_assets_dict={BUY: {'a1':1}, SELL: {}},
                                   budget=Budget(attacker=40, defender=0),
                                   actions_history={BUY: [buy, price_bump_log], SELL: [nope, price_bump_log],
                                                    SIM_TRADE: [price_bump_log]},
                                   inf_set=".40.A_HISTORY:['[]', \"{'a1': '1->1.5'}\"]")
 
-        node_1_0_0_0_0_0 = self.fill_dict(name='node_1_0_0_0_0_0', to_move=DEFENDER, actions=[nope],
+        node_1_0_0_0_0_0 = self.fill_dict(tree_size= 2,name='node_1_0_0_0_0_0', to_move=DEFENDER, actions=[nope],
                                     history_assets_dict={BUY: {'a1': 1}, SELL: {}},
                                     budget=Budget(attacker=40, defender=0),
                                     actions_history={BUY: [buy, price_bump_log], SELL: [nope, price_bump_log, nope],
                                                            SIM_TRADE: [price_bump_log]}
                                           , inf_set=".0.D_HISTORY:['[Buy a1 50]', \"{'a1': '1->1.5'}\"]")
 
-        node_1_0_0_0_0_0_0 = self.fill_dict(name='node_1_0_0_0_0_0_0', to_move=MARKET, actions=[],
+        node_1_0_0_0_0_0_0 = self.fill_dict(tree_size= 1,name='node_1_0_0_0_0_0_0', to_move=MARKET, actions=[],
                                       history_assets_dict={BUY: {'a1': 1}, SELL: {}},
                                       budget=Budget(attacker=40, defender=0),
                                       actions_history={BUY: [buy, price_bump_log, nope],
@@ -129,38 +131,38 @@ class TestFlashCrashPlayers_CFR  (unittest.TestCase):
                                       inf_set=".MARKET_HISTORY:[\"{'a1': '1->1.5'}\"].BUY:{}.SELL:{}")
 
 
-        node_1_0_0_1 = self.fill_dict(name ='node_1_0_0_1',to_move=MARKET, actions=[], history_assets_dict={BUY: {}, SELL: {}},
+        node_1_0_0_1 = self.fill_dict(tree_size= 1,name ='node_1_0_0_1',to_move=MARKET, actions=[], history_assets_dict={BUY: {}, SELL: {}},
                                     budget=Budget(attacker=40, defender=50),
                                     actions_history={BUY: [nope], SELL: [nope], SIM_TRADE: []}, inf_set=".MARKET_HISTORY:[].BUY:{}.SELL:{}",terminal=True, eval=0)
 
         ###########
-        node_1_1 = self.fill_dict(name ='node_1_1',to_move=ATTACKER, actions = [nope] , history_assets_dict={BUY:{},SELL:{}},
+        node_1_1 = self.fill_dict(tree_size= 7,name ='node_1_1',to_move=ATTACKER, actions = [nope] , history_assets_dict={BUY:{},SELL:{}},
                                   budget=Budget(attacker=30,defender=50),
                                   actions_history={BUY:[],SELL:[], SIM_TRADE:[]},
                                   inf_set= '.30.A_HISTORY:[]')
 
-        node_1_1_0 = self.fill_dict(name ='node_1_1_0',to_move=DEFENDER, actions=buy_actions,
+        node_1_1_0 = self.fill_dict(tree_size= 6,name ='node_1_1_0',to_move=DEFENDER, actions=buy_actions,
                                     history_assets_dict={BUY: {}, SELL: {}},
                                     budget=Budget(attacker=30, defender=50),
                                     actions_history={BUY: [], SELL: [nope], SIM_TRADE: []}, inf_set='.50.D_HISTORY:[]')
 
-        node_1_1_0_0 = self.fill_dict(name ='node_1_1_0_0',to_move=MARKET, actions=[price_bump_log], history_assets_dict={BUY: {'a1':1}, SELL: {}},
+        node_1_1_0_0 = self.fill_dict(tree_size= 4,name ='node_1_1_0_0',to_move=MARKET, actions=[price_bump_log], history_assets_dict={BUY: {'a1':1}, SELL: {}},
                                     budget=Budget(attacker=30, defender=0),
                                     actions_history={BUY: [buy], SELL: [nope], SIM_TRADE: []}, inf_set=".MARKET_HISTORY:[].BUY:{'a1': 50}.SELL:{}")
 
-        node_1_1_0_0_0 = self.fill_dict(name='node_1_1_0_0_0', to_move=ATTACKER, actions=[nope],
+        node_1_1_0_0_0 = self.fill_dict(tree_size= 3,name='node_1_1_0_0_0', to_move=ATTACKER, actions=[nope],
                                   history_assets_dict={BUY: {'a1':1}, SELL: {}},
                                   budget=Budget(attacker=30, defender=0),
                                   actions_history={BUY: [buy, price_bump_log], SELL: [nope, price_bump_log], SIM_TRADE: [price_bump_log]}, inf_set=".30.A_HISTORY:['[]', \"{'a1': '1->1.5'}\"]")
 
-        node_1_1_0_0_0_0 = self.fill_dict(name='node_1_1_0_0_0_0', to_move=DEFENDER, actions=[nope],
+        node_1_1_0_0_0_0 = self.fill_dict(tree_size= 2,name='node_1_1_0_0_0_0', to_move=DEFENDER, actions=[nope],
                                     history_assets_dict={BUY: {'a1': 1}, SELL: {}},
                                     budget=Budget(attacker=30, defender=0),
                                     actions_history={BUY: [buy, price_bump_log], SELL: [nope, price_bump_log, nope],
                                                            SIM_TRADE: [price_bump_log]}
                                           , inf_set=".0.D_HISTORY:['[Buy a1 50]', \"{'a1': '1->1.5'}\"]")
 
-        node_1_1_0_0_0_0_0 = self.fill_dict(name='node_1_1_0_0_0_0_0', to_move=MARKET, actions=[],
+        node_1_1_0_0_0_0_0 = self.fill_dict(tree_size= 1,name='node_1_1_0_0_0_0_0', to_move=MARKET, actions=[],
                                       history_assets_dict={BUY: {'a1': 1}, SELL: {}},
                                       budget=Budget(attacker=30, defender=0),
                                       actions_history={BUY: [buy, price_bump_log, nope],
@@ -169,7 +171,7 @@ class TestFlashCrashPlayers_CFR  (unittest.TestCase):
                                       inf_set=".MARKET_HISTORY:[\"{'a1': '1->1.5'}\"].BUY:{}.SELL:{}")
 
 
-        node_1_1_0_1 = self.fill_dict(name ='node_1_1_0_1',to_move=MARKET, actions=[], history_assets_dict={BUY: {}, SELL: {}},
+        node_1_1_0_1 = self.fill_dict(tree_size= 1,name ='node_1_1_0_1',to_move=MARKET, actions=[], history_assets_dict={BUY: {}, SELL: {}},
                                     budget=Budget(attacker=30, defender=50),
                                     actions_history={BUY: [nope], SELL: [nope], SIM_TRADE: []}, inf_set=".MARKET_HISTORY:[].BUY:{}.SELL:{}",terminal=True, eval=0)
 

@@ -38,6 +38,7 @@ class ActionsManager:
         self.__updated_asset = None
         self.__portfolios_probs = portfolios_probs
         self.__id_to_portfolio = {}
+        self.__pid_to_cost = {}
         if not portfolios_probs:
             if attacker_budgets:
                 self.__set_uniform_portfolios_probabilities(attacker_budgets)
@@ -50,6 +51,9 @@ class ActionsManager:
 
     def get_portfolios_prob(self):
         return self.__portfolios_probs
+
+    def get_portfolios_in_budget(self, budget):
+        return [pid for pid in self.__id_to_portfolio.keys() if self.__pid_to_cost[pid] <= budget]
 
     def __set_uniform_portfolios_probabilities(self, attacker_budgets):
         attackers_portfolio_num = {x:0 for x in attacker_budgets}
@@ -66,6 +70,7 @@ class ActionsManager:
                 i+=1
                 id = 'p' + str(i)
                 self.__id_to_portfolio[id] = p
+                self.__pid_to_cost[id] = cost
                 portfolios_probs[id] = 0
                 for a in attacker_budgets:
                     if a >= cost:

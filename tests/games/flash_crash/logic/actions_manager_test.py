@@ -256,7 +256,7 @@ class TestActionsManager  (unittest.TestCase):
         assets = {'a1': a1, 'a2': a2}
         mgr = ActionsManager(assets, 0.1, attacker_budgets=[5, 10])
         id2portfolios = mgr.get_portfolios()
-        actual = mgr.get_portfolios_in_budget_dict([5,10])
+        actual = mgr.get_portfolios_in_budget_dict()
         expected_attacks_b5 = [Attack([], 0)]
         expected_attacks_b10 = [Attack([], 0), Attack([Sell('a1',10)], 10)]
         actual_attacks_b5= [id2portfolios[x] for x in actual[5]]

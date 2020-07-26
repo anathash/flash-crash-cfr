@@ -21,7 +21,7 @@ class SplitGameCFR:
 
     def compute_game_equilibrium(self, attacker_budgets, portfolios_utilities, iterations,action_mgr):
         p_selector_root = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, portfolios_utilities,
-                                                                         action_mgr.get_portfolios_in_budget_dict(attacker_budgets))
+                                                                         action_mgr.get_portfolios_in_budget_dict())
         cfr = VanillaCFR(p_selector_root)
         cfr.run(iterations=iterations)
         cfr.compute_nash_equilibrium()

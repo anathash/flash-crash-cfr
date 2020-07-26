@@ -26,11 +26,11 @@ class PortfolioSelectorFlashCrashGameStateBase(GameStateBase):
 
 
 class PortfolioSelectorFlashCrashRootChanceGameState(GameStateBase):
-    def __init__(self, attacker_budgets, portfolios_utilities, action_manager):
+    def __init__(self, attacker_budgets, portfolios_utilities, portfolios_cost):
         super().__init__(parent=None, to_move=CHANCE, actions =[str(x) for x in attacker_budgets])
         self.children = {}
         for budget in attacker_budgets:
-            pids_in_budget= action_manager.get_portfolios_in_budget(budget)
+            pids_in_budget= portfolios_cost[budget]
             self.children[str(budget)]= PortfolioSelectorAttackerMoveGameState(
                 parent=self, to_move=ATTACKER,
                 portfolios={x:y for x,y in portfolios_utilities.items() if x in pids_in_budget},

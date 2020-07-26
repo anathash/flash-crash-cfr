@@ -233,3 +233,36 @@ class TestActionsManager  (unittest.TestCase):
         actual_attacks.sort(key=lambda a: a[1])
         expected_attacks.sort(key=lambda a: a[1])
         self.assertListEqual(expected_attacks, actual_attacks)
+
+    def test_get_portfolios_in_budget(self):
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
+        assets = {'a1': a1, 'a2': a2}
+        mgr = ActionsManager(assets, 0.1, attacker_budgets = [20, 30])
+        id2portfolios = mgr.get_portfolios()
+
+        actual = mgr.get_portfolios_in_budget(10)
+        expected_attacks = [Attack([], 0), Attack([Sell('a1',10)], 10)]
+        actual_attacks= [id2portfolios[x] for x in actual]
+        self.assertListEqual(expected_attacks, actual_attacks)
+
+        actual = mgr.get_portfolios_in_budget(15)
+        actual_attacks= [id2portfolios[x] for x in actual]
+        self.assertListEqual(expected_attacks, actual_attacks)
+
+    def test_get_portfolios_in_budget_dict(self):
+        a1 = AssetFundNetwork.Asset(price=1, daily_volume=100, symbol='a1')
+        a2 = AssetFundNetwork.Asset(price=2, daily_volume=200, symbol='a2')
+        assets = {'a1': a1, 'a2': a2}
+        mgr = ActionsManager(assets, 0.1, attacker_budgets=[5, 10])
+        id2portfolios = mgr.get_portfolios()
+        actual = mgr.get_portfolios_in_budget_dict([5,10])
+        expected_attacks_b5 = [Attack([], 0)]
+        expected_attacks_b10 = [Attack([], 0), Attack([Sell('a1',10)], 10)]
+        actual_attacks_b5= [id2portfolios[x] for x in actual[5]]
+        actual_attacks_b10= [id2portfolios[x] for x in actual[10]]
+
+        self.assertListEqual(expected_attacks_b5, actual_attacks_b5)
+        self.assertListEqual(expected_attacks_b10, actual_attacks_b10)
+
+

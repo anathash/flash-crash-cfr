@@ -7,14 +7,6 @@ from flash_crash_portfolios_selector_cfr import PortfolioSelectorFlashCrashRootC
 from solvers.ActionsManager import ActionsManager
 
 
-def get_portfolios_in_budget_side_effects(budget):
-    if budget == 10:
-        return ['p1']
-    elif budget == 20:
-        return ['p1', 'p2']
-    return None
-
-
 class TestFlashCrashPortfolioPlayers_CFR  (unittest.TestCase):
 
     @staticmethod
@@ -44,16 +36,54 @@ class TestFlashCrashPortfolioPlayers_CFR  (unittest.TestCase):
     def test_tree(self):
         attacker_budgets = [10, 20]
         portfolios_utilities = {'p1':0, 'p2':-1}
-        action_mgr = ActionsManager(2, 0.5)
-        action_mgr.get_portfolios_in_budget = MagicMock()
-        action_mgr.get_portfolios_in_budget.side_effect = get_portfolios_in_budget_side_effects
-
-        actual_tree = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, portfolios_utilities)
+        actual_tree = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, portfolios_utilities,
+                                                                     {10:['p1', 'p2'], 20:['p1', 'p2']})
         expected_tree = self.gen_tree()
         self.assertEqual(actual_tree.chance_prob(), 1./2)
         self.cmp_tree(expected_tree, actual_tree)
 
-    def gen_tree(self,):
+    def test_tree2(self):
+        attacker_budgets = [10, 20]
+        portfolios_utilities = {'p1':0, 'p2':-1}
+        actual_tree = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, portfolios_utilities,
+                                                                     {10:['p1', 'p2'], 20:['p1']})
+        expected_tree = self.gen_tree2()
+        self.assertEqual(actual_tree.chance_prob(), 1./2)
+        self.cmp_tree(expected_tree, actual_tree)
+
+    def gen_tree2(self,):
+        root = {'tree_size':6,'to_move':CHANCE,'actions':['10','20'],  'inf_set':'.', 'terminal':False }
+
+        node_1_0 = self.fill_dict(tree_size=3, to_move=ATTACKER, actions = ['p1','p2'],
+                                  inf_set='.10',
+                                  terminal=False, eval=None)
+
+        node_1_0_0 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+                                  inf_set = '.10.p1',
+                                  terminal = True, eval=0)
+
+        node_1_0_1 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+                                  inf_set = '.10.p2',
+                                  terminal = True, eval=-1)
+
+        node_1_1 = self.fill_dict(tree_size=2, to_move=ATTACKER, actions=['p1'],
+                                  inf_set='.20',
+                                  terminal=False, eval=None)
+
+        node_1_1_0 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+                                  inf_set = '.20.p1',
+                                  terminal = True, eval=0)
+
+
+        root['children'] = {'10': node_1_0, '20': node_1_1}
+        node_1_0['children'] = {'p1': node_1_0_0, 'p2': node_1_0_1}
+        node_1_1['children'] = {'p1': node_1_1_0}
+        node_1_0_0['children'] = {}
+        node_1_0_1['children'] = {}
+        node_1_1_0['children'] = {}
+        return root
+
+    def gen_tree(self):
         root = {'tree_size':7,'to_move':CHANCE,'actions':['10','20'],  'inf_set':'.', 'terminal':False }
 
         node_1_0 = self.fill_dict(tree_size=3, to_move=ATTACKER, actions = ['p1','p2'],

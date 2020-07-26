@@ -55,6 +55,9 @@ class ActionsManager:
     def get_portfolios_in_budget(self, budget):
         return [pid for pid in self.__id_to_portfolio.keys() if self.__pid_to_cost[pid] <= budget]
 
+    def get_portfolios_in_budget_dict(self, budgets):
+        return {b: self.get_portfolios_in_budget(b) for b in budgets}
+
     def __set_uniform_portfolios_probabilities(self, attacker_budgets):
         attackers_portfolio_num = {x:0 for x in attacker_budgets}
 

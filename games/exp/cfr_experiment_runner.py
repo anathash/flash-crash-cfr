@@ -2,19 +2,21 @@ import copy
 import csv
 import json
 import os
+from datetime import datetime
 from math import ceil, inf
 
 import numpy
 
 from SysConfig import SysConfig
-from bases import GameStateBase
 from constants import ATTACKER
 from exp.network_generators import get_network_from_dir, gen_new_network
 from flash_crash_players_cfr import FlashCrashRootChanceGameState
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
+from flash_crash_portfolios_selector_cfr import PortfolioSelectorFlashCrashRootChanceGameState
 from solvers.ActionsManager import ActionsManager
 from solvers.minimax import minimax, minimax2, alphabeta, single_agent
 from solvers.cfr import VanillaCFR
+from solvers.split_game_cfr import SplitGameCFR
 
 BUDGET_LOWER_BOUND = 10000000
 BUDGET_UPPER_BOUND = 100000000
@@ -27,7 +29,6 @@ TIME ="time"
 alg_fields = [VALUE,NUM_ACTIONS, TIME]
 DEFENDER_BUDGET = "defender_budget"
 ATTACKER_BUDGET = "attacker_budget"
-
 
 
 def update_all_algs_stats(defender_budget, attacker_budgets, minimax_results, cfr_results):
@@ -50,6 +51,7 @@ def write_json(data, filename):
     with open(filename,'w') as f:
         json.dump(data, f, indent=4)
 
+
 def update_result_file(defender_budget, attacker_budgets, minimax_results, cfr_results, filename):
     dict = update_all_algs_stats(defender_budget, attacker_budgets, minimax_results, cfr_results)
     if os.path.exists(filename):
@@ -67,7 +69,6 @@ def update_result_file(defender_budget, attacker_budgets, minimax_results, cfr_r
     # write list to file
     with open(filename, 'w+') as outfile:
         json.dump(data, outfile, indent=4)
-
 
 
 def write_results_file(stats_list, dirname):
@@ -98,7 +99,10 @@ def compute_cfr_equilibrium(action_mgr, network, defender_budget, attacker_budge
     for attacker in attacker_budgets:
         attackers_eq[attacker] = root.children[str(attacker)].get_value()
         regrets[attacker]  = vanilla_cfr.cumulative_regrets[root.children[str(attacker)].inf_set()]
-    return {'defender':defender_eq, 'attackers':attackers_eq, 'regrets':regrets}
+    cumulative_pos_regret = vanilla_cfr.total_positive_regret()
+    return {'defender':defender_eq, 'attackers':attackers_eq, 'regrets':regrets,
+            'pos_regret': cumulative_pos_regret / iterations}
+
 
 def run_minimax_experiments_for_defender_budget(actions_mgr, network, defender_budget,  alg, attacker_budgets):
     results = {0: {}, defender_budget:{}}
@@ -113,8 +117,6 @@ def run_minimax_experiments_for_defender_budget(actions_mgr, network, defender_b
     return results
 
 
-
-
 def run_experiments(network, lower_bound, jump, upper_bound, dirname, iterations = 1000):
     filename = dirname+'//all_algs_results.json'
     if os.path. exists(filename):
@@ -122,7 +124,7 @@ def run_experiments(network, lower_bound, jump, upper_bound, dirname, iterations
 
     defender_budget = lower_bound
     ratios = [0.75, 1, 1.25, 1.5]
-    initia_netowork = copy.deepcopy(network)
+    initial_netowork = copy.deepcopy(network)
     cfr_actions_mgr = ActionsManager(network.assets, SysConfig.get("STEP_ORDER_SIZE"), 1)
     minimax_actions_mgr = ActionsManager(network.assets, SysConfig.get("STEP_ORDER_SIZE"), 2)
     while defender_budget <= upper_bound:
@@ -134,7 +136,7 @@ def run_experiments(network, lower_bound, jump, upper_bound, dirname, iterations
         defender_budget += jump
 
 
-def count_game_states_old(game_network, lower_bound, ratios):
+def count_game_states_old(game_network, lower_bound, ratios, network):
     network.limit_trade_step = True
     defender_budget = lower_bound
     actions_mgr = ActionsManager(network.assets, SysConfig.get("STEP_ORDER_SIZE"), 1)
@@ -144,6 +146,7 @@ def count_game_states_old(game_network, lower_bound, ratios):
                                          attacker_budgets=attacker_budgets)
     print('num_states =%d, num_assets=%d, num_funds = %d, num_attackers = %d' % (root.tree_size, len(game_network.assets),
           len(game_network.funds), len(ratios)))
+
 
 def count(state, counter):
     for kid in state.children.values():
@@ -157,21 +160,22 @@ def count_game_states(game_network, lower_bound, ratios, portfolios = False):
     initial_network = copy.deepcopy(game_network)
     attacker_budgets = [int(defender_budget * r) for r in ratios]
     if portfolios:
-        actions_mgr = ActionsManager(assets=network.assets,
+        actions_mgr = ActionsManager(assets=game_network.assets,
                                      step_order_size=SysConfig.get("STEP_ORDER_SIZE"),
                                      max_order_num=1,
                                      attacker_budgets=attacker_budgets)
         root = PortfolioFlashCrashRootChanceGameState(action_mgr=actions_mgr, af_network=initial_network,
                                                       defender_budget=defender_budget)
     else:
-        actions_mgr = ActionsManager(network.assets, SysConfig.get("STEP_ORDER_SIZE"), 1)
+        actions_mgr = ActionsManager(game_network.assets, SysConfig.get("STEP_ORDER_SIZE"), 1)
         root = FlashCrashRootChanceGameState(action_mgr=actions_mgr, af_network=initial_network, defender_budget=defender_budget,
                                              attacker_budgets=attacker_budgets)
     print (count(root, 0))
     print('num_states =%d, num_assets=%d, num_funds = %d, num_attackers = %d' % (root.tree_size, len(game_network.assets),
           len(game_network.funds), len(ratios)))
 
-def count_game_states_portfolios(game_network, lower_bound, ratios):
+
+def count_game_states_portfolios(game_network, lower_bound, ratios,network):
     network.limit_trade_step = True
     defender_budget = lower_bound
     attacker_budgets = [int(defender_budget * r) for r in ratios]
@@ -212,26 +216,184 @@ def validate_results(filename):
                     print('Valid entry. Defender Budget: ' + defender_budget +", attacker budget: " + attacker_budget)
 
 
+def count_portfolios_nodes( defender_budget, attacker_budgets, network, step_order_size, max_order_num):
+    split_actions_mgr = ActionsManager(assets=network.assets,
+                                       step_order_size=step_order_size,
+                                       max_order_num=max_order_num,
+                                       attacker_budgets=attacker_budgets)
+
+    root = PortfolioFlashCrashRootChanceGameState(action_mgr=split_actions_mgr, af_network=network,
+                                                  defender_budget=defender_budget)
+    dummy_utilities = {pid: 0 for pid in split_actions_mgr.get_probable_portfolios().keys()}
+    p_selector_root = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, dummy_utilities)
+    return root.tree_size + p_selector_root.tree_size
+
+
+def count_vanilla_nods(defender_budget, attacker_budgets, network, step_order_size, max_order_num):
+    vanilla_actions_mgr = ActionsManager(assets=network.assets, step_order_size=step_order_size,
+                                         max_order_num=max_order_num)
+    vanilla_root = FlashCrashRootChanceGameState(action_mgr=vanilla_actions_mgr, af_network=network,
+                                                 defender_budget=defender_budget,
+                                                 attacker_budgets=attacker_budgets)
+    return vanilla_root.tree_size
+
+
+def count_game_nodes_csv(res_dir, defender_budget, attacker_budgets, max_num_assets, num_exp=10):
+    results = []
+    for i in range (1, max_num_assets + 1):
+        avg_vanilla = 0
+        avg_split = 0
+        for j in range(0, num_exp):
+            dirname, network = gen_new_network(i)
+            network.limit_trade_step = True
+            step_order_size = SysConfig.get("STEP_ORDER_SIZE")
+            max_order_num = 1
+            avg_split += count_portfolios_nodes(defender_budget=defender_budget,
+                                                attacker_budgets=attacker_budgets,
+                                                network=network,
+                                                step_order_size= step_order_size,
+                                                max_order_num = max_order_num)
+            avg_vanilla += count_vanilla_nods(defender_budget=defender_budget,
+                                              attacker_budgets=attacker_budgets,
+                                              network=network,
+                                              step_order_size=step_order_size,
+                                              max_order_num=max_order_num)
+        avg_split /= num_exp
+        avg_vanilla /= num_exp
+        results.append({'num_assets': str(j), 'vanilla_cfr': avg_vanilla, 'split_cfr': avg_split})
+        with open(res_dir+'count_game_nodes.csv','w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=['num_assets','vanilla_cfr','split_cfr'])
+            writer.writeheader()
+            for row in results:
+                writer.writerow(row)
+
+
+def get_split_cfr_regret(defender_budget, attacker_budgets, network, step_order_size,
+                         max_order_num, iterations, main_game_iteration_portion):
+    network.limit_trade_step = True
+    # assets, step_order_size, max_order_num=1, attacker_budgets
+    cfr_actions_mgr = ActionsManager(assets=network.assets, step_order_size=step_order_size,
+                                     max_order_num=max_order_num, attacker_budgets=attacker_budgets)
+
+    split_game_cfr = SplitGameCFR()
+    run_results = split_game_cfr.run(action_mgr=cfr_actions_mgr, network=network, defender_budget=defender_budget,
+                      attacker_budgets=attacker_budgets,
+                      game1_iterations=ceil(iterations*main_game_iteration_portion),
+                      game2_iterations=ceil(iterations*(1-main_game_iteration_portion)),
+                      round=1)
+    return run_results['pos_regret']
+
+
+def get_vanilla_cfr_regret(defender_budget, attacker_budgets, network, step_order_size, max_order_num, iterations):
+    vanilla_actions_mgr = ActionsManager(assets=network.assets, step_order_size=step_order_size,
+                                         max_order_num=max_order_num)
+    results = compute_cfr_equilibrium(vanilla_actions_mgr, network, defender_budget, attacker_budgets, iterations)
+    return results['pos_regret']
+
+
+def iteration_portion_exp_csv(res_dir, defender_budget, attacker_budgets,
+                        min_portion, max_portion, jump, num_assets,iterations_num, step_order_size, max_order_num,num_exp=10):
+    portion = min_portion
+    regrets = []
+    iteration_regrets = {}
+    for i in range(0, num_exp):
+        while portion < max_portion:
+            if portion not in regrets:
+                iteration_regrets[portion] = 0
+            dirname, network = gen_new_network(num_assets)
+            split_cfr_regret = get_split_cfr_regret(defender_budget, attacker_budgets, network, step_order_size,
+                                                    max_order_num, iterations_num, portion)
+            iterations_num += jump
+            iteration_regrets[portion] += split_cfr_regret
+
+    for it_portion in iteration_regrets.keys():
+        regrets.append({'iteration_portion': it_portion, 'regret': iteration_regrets[it_portion] / num_exp})
+
+    with open(res_dir + 'iteration_portion.csv', 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=['num_iterations', 'vanilla_cfr', 'split_cfr'])
+        writer.writeheader()
+        for row in regrets:
+            writer.writerow(row)
+
+
+def iteration_stats_csv(res_dir, defender_budget, attacker_budgets, main_game_iteration_portion,
+                        min_iterations, max_iterations, jump, num_assets, step_order_size, max_order_num, num_exp=10):
+    iterations_num = min_iterations
+    regrets = []
+    iteration_regrets = {}
+    for i in range (0, num_exp):
+        while iterations_num < max_iterations:
+            if iterations_num not in regrets:
+                iteration_regrets[iterations_num] = {'split': 0, 'vanilla': 0}
+            dirname, network = gen_new_network(num_assets)
+            split_cfr_regret = get_split_cfr_regret(defender_budget, attacker_budgets, network, step_order_size,
+                             max_order_num, iterations_num, main_game_iteration_portion)
+            vanilla_cfr_regret = get_vanilla_cfr_regret(defender_budget, attacker_budgets, network, step_order_size, max_order_num, iterations_num)
+            iterations_num += jump
+            iteration_regrets[iterations_num]['split'] += split_cfr_regret
+            iteration_regrets[iterations_num]['vanilla'] += vanilla_cfr_regret
+
+    for it_num in iteration_regrets.keys():
+        regrets.append({'num_iterations':it_num,'split':iteration_regrets[it_num]['split_cfr']/ num_exp,
+                        'vanilla_cfr': iteration_regrets[it_num]['vanilla']/num_exp})
+
+    with open(res_dir + 'num_iterations.csv','w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=['num_iterations','vanilla_cfr','split_cfr'])
+        writer.writeheader()
+        for row in regrets:
+            writer.writerow(row)
+    ## number of attackers?
+
+
+def run_csv_exps():
+    dt = datetime.today()
+    dt = str(dt).split(' ')[0]
+    res_dir = '../../results/stats/' + dt.replace(":", "_").replace(" ", "_") + '/'
+    if not os.path.exists(res_dir):
+        os.mkdir(res_dir)
+    exp_params = {'defender_budget': 2000000000,
+                  'attacker_budgets': [4000000000, 6000000000, 8000000000],
+                  'main_game_iteration_portion': 0.9,
+                  'min_iterations': 10,
+                  'max_iterations': 100,
+                  'jump': 10,
+                  'num_assets': 3,
+                  'step_order_size': SysConfig.get("STEP_ORDER_SIZE")*2,
+                  'max_order_num': 1}
+
+    with open(res_dir+'params.json', 'w') as fp:
+        json.dump(exp_params, fp)
+
+    iteration_stats_csv(res_dir=res_dir, defender_budget=exp_params['defender_budget'],
+                        attacker_budgets=exp_params['attacker_budgets'],
+                        main_game_iteration_portion=exp_params['main_game_iteration_portion'],
+                        min_iterations=exp_params['min_iterations'],
+                        max_iterations=exp_params['max_iterations'],
+                        jump=exp_params['jump'],
+                        num_assets=exp_params['num_assets'],
+                        step_order_size=exp_params['step_order_size'],
+                        max_order_num=exp_params['max_order_num'])
+
 
 if __name__ == "__main__":
-
-   # dirname ='../../results/Tue_May_26_11_14_51_2020/'
+    run_csv_exps()
+    # dirname ='../../results/Tue_May_26_11_14_51_2020/'
     #dirname ='../../results/Wed_Jul__8_14_25_11_2020/'
     #network = get_network_from_dir(dirname)
     ratios = [1, 1.25, 1.5]
-    dirname, network = gen_new_network(2)
-    count_game_states(network, lower_bound=2000000000, ratios=ratios, portfolios=True)
+ #   dirname, network = '../../../results/Wed_Jul__8_14_25_11_2020/'
+    #count_game_states(network, lower_bound=2000000000, ratios=ratios, portfolios=True)
  #   GameStateBase.init_num_nodes()
    # count_game_states(network, lower_bound=2000000000, ratios=ratios, portfolios=False)
 
     #count_game_states_portfolios(network, lower_bound=700000000, ratios=ratios)
-    exit(0)
+   # exit(0)
 
-    network.limit_trade_step = True
-    run_experiments(network, lower_bound=400000000, jump = 400000000,upper_bound= 4000000000, dirname=dirname, iterations = 10)
+  #  network.limit_trade_step = True
+  #  run_experiments(network, lower_bound=400000000, jump = 400000000,upper_bound= 4000000000, dirname=dirname, iterations = 10)
 
-    run_experiments(network, lower_bound=200000000, jump = 400000000,upper_bound= 600000000, dirname=dirname, iterations = 1000)
-    validate_results(dirname+'all_algs_results.json')
+    #run_experiments(network, lower_bound=200000000, jump = 400000000,upper_bound= 600000000, dirname=dirname, iterations = 1000)
+    #validate_results(dirname+'all_algs_results.json')
 
 
 #    dirname, network = gen_new_network()

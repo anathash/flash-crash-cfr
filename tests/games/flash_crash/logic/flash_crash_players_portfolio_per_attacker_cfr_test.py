@@ -74,7 +74,7 @@ class TestFlashCrashPortfolio_PPA_Players_CFR  (unittest.TestCase):
 
         big_subtree_root = self.gen_big_sub_tree(50)
         small_subtree_root = self.gen_small_sub_tree(10)
-        expected_tree = {'tree_size':11, 'to_move':CHANCE,'actions':attackers_budgets,  'inf_set':'.', 'terminal':False }
+        expected_tree = {'tree_size':11, 'to_move':CHANCE,'actions':['10','50'],  'inf_set':'.', 'terminal':False }
         expected_tree['children'] = {'10':small_subtree_root,'50':big_subtree_root}
         self.assertEqual(actual_tree.chance_prob(), 0.5)
         self.assertEqual(actual_tree.tree_size, 11)
@@ -102,7 +102,7 @@ class TestFlashCrashPortfolio_PPA_Players_CFR  (unittest.TestCase):
 
         st1 = self.gen_big_sub_tree(50)
         st2 = self.gen_big_sub_tree(55)
-        expected_tree = {'tree_size':17, 'to_move':CHANCE,'actions':attackers_budgets,  'inf_set':'.', 'terminal':False }
+        expected_tree = {'tree_size':17, 'to_move':CHANCE,'actions':['50','55'],  'inf_set':'.', 'terminal':False }
         expected_tree['children'] = {'50':st1,'55':st2}
         self.assertEqual(actual_tree.chance_prob(), 0.5)
         self.assertEqual(actual_tree.tree_size, 17)

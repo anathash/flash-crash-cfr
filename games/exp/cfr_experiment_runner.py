@@ -12,6 +12,7 @@ from constants import ATTACKER
 from exp.network_generators import get_network_from_dir, gen_new_network
 from flash_crash_players_cfr import FlashCrashRootChanceGameState
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
+from flash_crash_players_portfolio_per_attacker_cfr import PPAFlashCrashRootChanceGameState
 from flash_crash_portfolios_selector_cfr import PortfolioSelectorFlashCrashRootChanceGameState
 from solvers.ActionsManager import ActionsManager
 from solvers.minimax import minimax, minimax2, alphabeta, single_agent
@@ -84,6 +85,23 @@ def write_results_file(stats_list, dirname):
         for row in stats_list:
             writer.writerow(row)
 
+def compute_cfr_ppa_equilibrium(action_mgr, network, defender_budget, attacker_budgets, iterations):
+    network.limit_trade_step = True
+    root = PPAFlashCrashRootChanceGameState(action_mgr=action_mgr, af_network=network, defender_budget=defender_budget,
+                                                       attacker_budgets=attacker_budgets)
+    vanilla_cfr = VanillaCFR(root)
+    vanilla_cfr.run(iterations=iterations)
+    vanilla_cfr.compute_nash_equilibrium()
+    defender_eq =  vanilla_cfr.value_of_the_game()
+    attackers_eq = {}
+    regrets = {}
+    root =vanilla_cfr.root
+    for attacker in attacker_budgets:
+        attackers_eq[attacker] = root.children[str(attacker)].get_value()
+        regrets[attacker]  = vanilla_cfr.cumulative_regrets[root.children[str(attacker)].inf_set()]
+    cumulative_pos_regret = vanilla_cfr.total_positive_regret()
+    return {'defender':defender_eq, 'attackers':attackers_eq, 'regrets':regrets,
+            'pos_regret': cumulative_pos_regret / iterations}
 
 def compute_cfr_equilibrium(action_mgr, network, defender_budget, attacker_budgets, iterations):
     network.limit_trade_step = True

@@ -41,8 +41,7 @@ class PPAFlashCrashGameStateBase(GameStateBase):
 
 class PPAFlashCrashRootChanceGameState(GameStateBase):
     def __init__(self, action_mgr, af_network:AssetFundsNetwork, defender_budget, attacker_budgets):
-        self._chance_prob = action_mgr.get_portfolios_prob()
-        super().__init__(parent=None, to_move=CHANCE, actions = attacker_budgets)
+        super().__init__(parent=None, to_move=CHANCE, actions = [str(x) for x in attacker_budgets])
         self.af_network = af_network
         self.children = {
             str(attacker_budget): PPASelectorGameState(

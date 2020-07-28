@@ -96,12 +96,15 @@ def compute_cfr_ppa_equilibrium(action_mgr, network, defender_budget, attacker_b
     attackers_eq = {}
     regrets = {}
     root =vanilla_cfr.root
+    sigma = {b: 0 for b in attacker_budgets}
     for attacker in attacker_budgets:
         attackers_eq[attacker] = root.children[str(attacker)].get_value()
         regrets[attacker]  = vanilla_cfr.cumulative_regrets[root.children[str(attacker)].inf_set()]
+        inf_set = ".{0}".format(str(attacker))
+        sigma[attacker] = vanilla_cfr.sigma[inf_set]
     cumulative_pos_regret = vanilla_cfr.total_positive_regret()
     return {'defender':defender_eq, 'attackers':attackers_eq, 'regrets':regrets,
-            'pos_regret': cumulative_pos_regret / iterations}
+            'pos_regret': cumulative_pos_regret / iterations, 'sigma':sigma}
 
 def compute_cfr_equilibrium(action_mgr, network, defender_budget, attacker_budgets, iterations):
     network.limit_trade_step = True
@@ -248,6 +251,17 @@ def count_portfolios_nodes( defender_budget, attacker_budgets, network, step_ord
     return root.tree_size + p_selector_root.tree_size
 
 
+def count_ppa_nods(defender_budget, attacker_budgets, network, step_order_size, max_order_num):
+    actions_mgr = ActionsManager(assets=network.assets,
+                                       step_order_size=step_order_size,
+                                       max_order_num=max_order_num,
+                                       attacker_budgets=attacker_budgets)
+    root = PPAFlashCrashRootChanceGameState(action_mgr=actions_mgr, af_network=network,
+                                                 defender_budget=defender_budget,
+                                                 attacker_budgets=attacker_budgets)
+    return root.tree_size
+
+
 def count_vanilla_nods(defender_budget, attacker_budgets, network, step_order_size, max_order_num):
     vanilla_actions_mgr = ActionsManager(assets=network.assets, step_order_size=step_order_size,
                                          max_order_num=max_order_num)
@@ -255,6 +269,7 @@ def count_vanilla_nods(defender_budget, attacker_budgets, network, step_order_si
                                                  defender_budget=defender_budget,
                                                  attacker_budgets=attacker_budgets)
     return vanilla_root.tree_size
+
 
 
 def count_game_nodes_csv(res_dir, defender_budget, attacker_budgets, max_num_assets, num_exp=10):
@@ -272,7 +287,7 @@ def count_game_nodes_csv(res_dir, defender_budget, attacker_budgets, max_num_ass
                                             step_order_size= step_order_size,
                                             max_order_num = max_order_num)
         print(str(datetime.now()) + ': vanilla')
-        vanilla = count_vanilla_nods(defender_budget=defender_budget,
+        vanilla = count_ppa_nods(defender_budget=defender_budget,
                                           attacker_budgets=attacker_budgets,
                                           network=network,
                                           step_order_size=step_order_size,
@@ -280,7 +295,7 @@ def count_game_nodes_csv(res_dir, defender_budget, attacker_budgets, max_num_ass
 
         results.append({'num_assets': str(i), 'vanilla_cfr': vanilla, 'split_cfr': split})
 
-    with open(res_dir + 'count_game_nodes.csv', 'w', newline='') as csvfile:
+    with open(res_dir + 'count_game_nodes_ppa.csv', 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=['num_assets','vanilla_cfr','split_cfr'])
         writer.writeheader()
         for row in results:
@@ -408,10 +423,10 @@ def run_csv_exps():
     with open(res_dir+'params.json', 'w') as fp:
         json.dump(exp_params, fp)
 
-    compute_node_size_csv(res_dir=res_dir,  max_num_attackers = 4, max_num_portfolios = 4, portfolio_size = 10)
-  #  count_game_nodes_csv(res_dir=res_dir, defender_budget=exp_params['defender_budget'],
-  #                      attacker_budgets=exp_params['attacker_budgets'],
-  #                      max_num_assets = 3)
+    #compute_node_size_csv(res_dir=res_dir,  max_num_attackers = 4, max_num_portfolios = 4, portfolio_size = 10)
+    count_game_nodes_csv(res_dir=res_dir, defender_budget=exp_params['defender_budget'],
+                        attacker_budgets=exp_params['attacker_budgets'],
+                        max_num_assets = 5)
 
 
 if __name__ == "__main__":

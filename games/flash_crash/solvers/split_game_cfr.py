@@ -27,12 +27,15 @@ class SplitGameCFR:
         cfr.compute_nash_equilibrium()
         pids = portfolios_utilities.keys()
         nash_eq = {pid:0 for pid in pids}
+        sigma = {b:0 for b in attacker_budgets}
         attackers_eq = {}
         defender_eq = cfr.value_of_the_game()
         for attacker_budget in attacker_budgets:
+            inf_set = ".{0}".format(attacker_budget)
+            sigma[attacker_budget] = cfr.sigma[inf_set]
             for pid in action_mgr.get_portfolios_in_budget(attacker_budget):
-                inf_set = ".{0}".format(attacker_budget)
                 nash_eq[pid] += cfr.nash_equilibrium[inf_set][pid]*1/len(attacker_budgets)
+
 
         for attacker in attacker_budgets:
             attackers_eq[attacker] = p_selector_root.children[str(attacker)].get_value()
@@ -40,7 +43,7 @@ class SplitGameCFR:
             #'regrets':regrets
         cumulative_pos_regret = cfr.total_positive_regret()
         return {'defender':defender_eq, 'attackers':attackers_eq,  'pos_regret':cumulative_pos_regret/iterations,
-                'portfolios_dist':nash_eq}
+                'portfolios_dist':nash_eq, 'sigma':sigma}
 
     def iterate(self, network, defender_budget, game1_iterations, game2_iterations, max_iterations, regret_epsilon):
         network.limit_trade_step = True

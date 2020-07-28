@@ -24,7 +24,7 @@ class TestSplitCFR(unittest.TestCase):
                           game1_iterations=iterations1,
                           game2_iterations=iterations2,
                           round=1)
-        return run_results['attackers'], run_results['defender']
+        return run_results
 
     def test_split_eq_cfr(self):
         exp_params = {'defender_budget': 2000000000,
@@ -54,13 +54,13 @@ class TestSplitCFR(unittest.TestCase):
         print('defender = ' + str(vanilla_results['defender']))
         print('attackers = ' + str(vanilla_results['attackers']))
         print('Split')
-        print('defender = ' + str(eq_split[1]))
-        print('attackers = ' +str(eq_split[0]))
+        print('defender = ' + str(eq_split['defender']))
+        print('attackers = ' +str(eq_split['attackers']))
         self.assertTrue (numpy.isclose(float(vanilla_results['defender']),
-                         float(eq_split[1]), rtol=0.01, atol=0.01, equal_nan=False))
+                         float(eq_split['defender']), rtol=0.01, atol=0.01, equal_nan=False))
         for at in exp_params['attacker_budgets']:
             self.assertTrue(numpy.isclose(float(vanilla_results['attackers'][at]),
-                                          float(eq_split[0][at]), rtol=0.01, atol=0.01, equal_nan=False))
+                                          float(eq_split['attackers'][at]), rtol=0.01, atol=0.01, equal_nan=False))
 
     def test_split_eq_ppa_cfr(self):
         exp_params = {'defender_budget': 2000000000,
@@ -79,26 +79,31 @@ class TestSplitCFR(unittest.TestCase):
                                          network,
                                          exp_params['step_order_size'],
                                          exp_params['max_order_num'],
-                                         800,
-                                         200)
+                                         8,
+                                         20)
 
         vanilla_actions_mgr = ActionsManager(assets=network.assets, step_order_size=exp_params['step_order_size'],
                                              max_order_num=exp_params['max_order_num'],attacker_budgets=  exp_params['attacker_budgets'])
 
 
         vanilla_results = compute_cfr_ppa_equilibrium(vanilla_actions_mgr, network, exp_params['defender_budget'],
-                                          exp_params['attacker_budgets'], 1000)
+                                          exp_params['attacker_budgets'], 30)
+       # print(vanilla_results)
+       # print(eq_split)
         print('PPA')
         print('defender = ' + str(vanilla_results['defender']))
         print('attackers = ' + str(vanilla_results['attackers']))
+        print('sigma = ' + str(vanilla_results['sigma']))
         print('Split')
-        print('defender = ' + str(eq_split[1]))
-        print('attackers = ' +str(eq_split[0]))
+        print('defender = ' + str(eq_split['defender']))
+        print('attackers = ' +str(eq_split['attackers']))
+        print('sigma = ' +str(eq_split['sigma']))
         self.assertTrue (numpy.isclose(float(vanilla_results['defender']),
-                         float(eq_split[1]), rtol=0.01, atol=0.01, equal_nan=False))
+                         float(eq_split['defender']), rtol=0.01, atol=0.01, equal_nan=False))
         for at in exp_params['attacker_budgets']:
             self.assertTrue(numpy.isclose(float(vanilla_results['attackers'][at]),
-                                          float(eq_split[0][at]), rtol=0.01, atol=0.01, equal_nan=False))
+                                          float(eq_split['attackers'][at]), rtol=0.01, atol=0.01, equal_nan=False))
+            self.assertDictEqual(vanilla_results['sigma'][at], eq_split['sigma'][at])
 
 if __name__ == '__main__':
     unittest.main()

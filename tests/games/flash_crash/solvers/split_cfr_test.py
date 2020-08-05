@@ -38,7 +38,7 @@ class TestSplitCFR(unittest.TestCase):
                       'max_order_num': 1}
         network  = get_network_from_dir('../../../../results/three_assets_net')
         network.limit_trade_step = True
-        eq_split = self.get_split_cfr_eq(exp_params['defender_budget'],
+        (main_game_results, selector_game_result) = self.get_split_cfr_eq(exp_params['defender_budget'],
                                          exp_params['attacker_budgets'],
                                          network,
                                          exp_params['step_order_size'],
@@ -54,13 +54,13 @@ class TestSplitCFR(unittest.TestCase):
         print('defender = ' + str(vanilla_results['defender']))
         print('attackers = ' + str(vanilla_results['attackers']))
         print('Split')
-        print('defender = ' + str(eq_split['defender']))
-        print('attackers = ' +str(eq_split['attackers']))
+        print('defender = ' + str(selector_game_result['defender']))
+        print('attackers = ' +str(selector_game_result['attackers']))
         self.assertTrue (numpy.isclose(float(vanilla_results['defender']),
-                         float(eq_split['defender']), rtol=0.01, atol=0.01, equal_nan=False))
+                         float(selector_game_result['defender']), rtol=0.01, atol=0.01, equal_nan=False))
         for at in exp_params['attacker_budgets']:
             self.assertTrue(numpy.isclose(float(vanilla_results['attackers'][at]),
-                                          float(eq_split['attackers'][at]), rtol=0.01, atol=0.01, equal_nan=False))
+                                          float(selector_game_result['attackers'][at]), rtol=0.01, atol=0.01, equal_nan=False))
 
     def test_split_eq_ppa_cfr(self):
         exp_params = {'defender_budget': 2000000000,
@@ -72,9 +72,9 @@ class TestSplitCFR(unittest.TestCase):
                       'num_assets': 3,
                       'step_order_size': SysConfig.get("STEP_ORDER_SIZE") * 2,
                       'max_order_num': 1}
-        network  = get_network_from_dir('../../../../results/three_assets_net')
+        network  = get_network_from_dir('../../../../resources/three_assets_net')
         network.limit_trade_step = True
-        eq_split = self.get_split_cfr_eq(exp_params['defender_budget'],
+        main_game_results, selector_game_result = self.get_split_cfr_eq(exp_params['defender_budget'],
                                          exp_params['attacker_budgets'],
                                          network,
                                          exp_params['step_order_size'],
@@ -95,15 +95,15 @@ class TestSplitCFR(unittest.TestCase):
         print('attackers = ' + str(vanilla_results['attackers']))
         print('sigma = ' + str(vanilla_results['sigma']))
         print('Split')
-        print('defender = ' + str(eq_split['defender']))
-        print('attackers = ' +str(eq_split['attackers']))
-        print('sigma = ' +str(eq_split['sigma']))
+        print('defender = ' + str(selector_game_result['defender']))
+        print('attackers = ' +str(selector_game_result['attackers']))
+        print('sigma = ' +str(selector_game_result['sigma']))
         self.assertTrue (numpy.isclose(float(vanilla_results['defender']),
-                         float(eq_split['defender']), rtol=0.01, atol=0.01, equal_nan=False))
+                         float(selector_game_result['defender']), rtol=0.01, atol=0.01, equal_nan=False))
         for at in exp_params['attacker_budgets']:
             self.assertTrue(numpy.isclose(float(vanilla_results['attackers'][at]),
-                                          float(eq_split['attackers'][at]), rtol=0.01, atol=0.01, equal_nan=False))
-            self.assertDictEqual(vanilla_results['sigma'][at], eq_split['sigma'][at])
+                                          float(selector_game_result['attackers'][at]), rtol=0.01, atol=0.01, equal_nan=False))
+            self.assertDictEqual(vanilla_results['sigma'][at], selector_game_result['sigma'][at])
 
 if __name__ == '__main__':
     unittest.main()

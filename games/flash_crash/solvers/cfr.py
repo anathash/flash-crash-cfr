@@ -1,4 +1,4 @@
-from solvers.utils import init_sigma, init_empty_node_maps
+from solvers.utils import init_sigma, init_empty_node_maps, init_empty_node
 from constants import ATTACKER, DEFENDER
 
 class CounterfactualRegretMinimizationBase:
@@ -7,6 +7,7 @@ class CounterfactualRegretMinimizationBase:
         self.root = root
         self.sigma = init_sigma(root)
         self.cumulative_regrets = init_empty_node_maps(root)
+        self.cumulative_immediate_pos_regret = init_empty_node(root)
         self.cumulative_sigma = init_empty_node_maps(root)
         self.nash_equilibrium = init_empty_node_maps(root)
         self.chance_sampling = chance_sampling
@@ -41,6 +42,9 @@ class CounterfactualRegretMinimizationBase:
     def _cumulate_cfr_regret(self, information_set, action, regret):
         self.cumulative_regrets[information_set][action] += regret
 
+    def _cumulate_imm_pos_regret(self, information_set, max_pos_regret):
+        self.cumulative_immediate_pos_regret[information_set] += max_pos_regret
+
     def _cumulate_sigma(self, information_set, action, prob):
         if prob < 0:
             print(str(information_set))
@@ -52,6 +56,8 @@ class CounterfactualRegretMinimizationBase:
 #        y = sum(self.cumulative_sigma[".{'AAPL': 240.0149968, 'AMZN': 1860.105825, 'BABA': 185.7262497, 'FB': 190.2608338, 'GOOGL': 1236.770854, 'JNJ': 135.4142235463039, 'MSFT': 145.6558325, 'PG': 116.5833341, 'V': 177.5908353, 'WMT': 112.14958601110506}.SELL:[['[Sell JNJ 1208076]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[Sell WMT 979217]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]']]"].values())
 #        print(y)
 
+    def average_total_imm_regret(self, iterations):
+        return sum(self.cumulative_immediate_pos_regret.values())/iterations
 
     def total_positive_regret(self):
         pos_r = 0
@@ -105,13 +111,16 @@ class CounterfactualRegretMinimizationBase:
         # in current node, for player A, it is different than for player B
         #cfr_reach = pi_{-i}^{\sigma}
         (cfr_reach, reach) = (reach_defender, reach_attacker) if state.to_move == ATTACKER else (reach_attacker, reach_defender)
+        max_pos_regret = 0
         for action in state.actions:
             # we multiply regret by -1 for player defender, this is because value is computed from player A perspective
             # again we need that perspective switch
             #action_cfr_regret = probabaility_of_reaching_action*(utilities_diff)*sign_value(-1/1 fora attacker or defender)
             action_cfr_regret = state.to_move * cfr_reach * (children_states_utilities[action] - value)
+            max_pos_regret = max(max_pos_regret, action_cfr_regret)
             self._cumulate_cfr_regret(state.inf_set(), action, action_cfr_regret)
             self._cumulate_sigma(state.inf_set(), action, reach * self.sigma[state.inf_set()][action])
+        self._cumulate_imm_pos_regret(state.inf_set(), max_pos_regret)
         if self.chance_sampling:
             # update sigma according to cumulative regrets - we can do it here because we are using chance sampling
             # and so we only visit single game_state from an information set (chance is sampled once)
@@ -136,6 +145,7 @@ class VanillaCFR(CounterfactualRegretMinimizationBase):
         super().__init__(root = root, chance_sampling = False)
 
     def run(self, round = 0, iterations = 1):
+        self.iterations = iterations
         for i in range(0, iterations):
             print('iteration ' + str(round) + '_' + str(i))
             u = self._cfr_utility_recursive(self.root, 1, 1)

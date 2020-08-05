@@ -10,6 +10,7 @@ from solvers.cfr import VanillaCFR
 
 class SplitGameCFR:
 
+
     def compute_portfolio_utilities(self, root, round, action_mgr, iterations):
         vanilla_cfr = VanillaCFR(root)
         vanilla_cfr.run(iterations=iterations, round=round)
@@ -17,7 +18,8 @@ class SplitGameCFR:
         # generate portfolio utility table
         vanilla_cfr.value_of_the_game()
         utilities = {pid: root.children[pid].get_value() for pid in action_mgr.get_probable_portfolios().keys()}
-        return utilities
+        cumulative_pos_regret = vanilla_cfr.average_total_imm_regret(iterations)
+        return {'utilities':utilities,'pos_regret': cumulative_pos_regret, 'exploitability': 2* cumulative_pos_regret}
 
     def compute_game_equilibrium(self, attacker_budgets, portfolios_utilities, iterations,action_mgr):
         p_selector_root = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, portfolios_utilities,
@@ -41,9 +43,11 @@ class SplitGameCFR:
             attackers_eq[attacker] = p_selector_root.children[str(attacker)].get_value()
             #regrets[attacker] = cfr.cumulative_regrets[p_selector_root.children[str(attacker)].inf_set()]
             #'regrets':regrets
-        cumulative_pos_regret = cfr.total_positive_regret()
-        return {'defender':defender_eq, 'attackers':attackers_eq,  'pos_regret':cumulative_pos_regret/iterations,
-                'portfolios_dist':nash_eq, 'sigma':sigma}
+
+        cumulative_pos_regret = cfr.average_total_imm_regret(iterations)
+        return {'pos_regret': cumulative_pos_regret, 'exploitability': 2* cumulative_pos_regret,
+                  'defender':defender_eq, 'attackers':attackers_eq,
+                  'portfolios_dist':nash_eq, 'sigma':sigma}
 
     def iterate(self, network, defender_budget, game1_iterations, game2_iterations, max_iterations, regret_epsilon):
         network.limit_trade_step = True
@@ -72,10 +76,9 @@ class SplitGameCFR:
         root = PortfolioFlashCrashRootChanceGameState(action_mgr=action_mgr,
                                                       af_network=network,
                                                       defender_budget=defender_budget)
-        utilities = self.compute_portfolio_utilities(root, round, action_mgr, game1_iterations)
-        return self.compute_game_equilibrium(attacker_budgets, utilities, game2_iterations, action_mgr)
-
-
+        main_game_results = self.compute_portfolio_utilities(root, round, action_mgr, game1_iterations)
+        selector_game_result = self.compute_game_equilibrium(attacker_budgets, main_game_results['utilities'], game2_iterations, action_mgr)
+        return (main_game_results, selector_game_result)
 
 
 def main():
@@ -89,8 +92,8 @@ def main():
     cfr_actions_mgr = ActionsManager(assets=network.assets, step_order_size=SysConfig.get("STEP_ORDER_SIZE"),
                                      max_order_num=1, attacker_budgets=attacker_budgets)
 
-    split_gae_cfr = SplitGameCFR()
-    split_gae_cfr.run(action_mgr=cfr_actions_mgr, network=network, defender_budget=defender_budget,
+    split_game_cfr = SplitGameCFR()
+    split_game_cfr.run(action_mgr=cfr_actions_mgr, network=network, defender_budget=defender_budget,
                   attacker_budgets=attacker_budgets,
                   game1_iterations=200,
                   game2_iterations=800,

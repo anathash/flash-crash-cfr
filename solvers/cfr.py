@@ -1,5 +1,6 @@
-from solvers.utils import init_sigma, init_empty_node_maps, init_empty_node
 from constants import ATTACKER, DEFENDER
+from utils import init_sigma, init_empty_node_maps, init_empty_node
+
 
 class CounterfactualRegretMinimizationBase:
 

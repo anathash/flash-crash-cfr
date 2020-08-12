@@ -1,5 +1,5 @@
+from cfr import VanillaCFR
 from flash_crash_players_cfr import FlashCrashRootChanceGameState
-from solvers.cfr import VanillaCFR
 
 
 def compute_cfr_equilibrium(action_mgr, network, defender_budget, attacker_budgets, iterations):

@@ -9,7 +9,7 @@ from Orders import Sell
 
 import networkx as nx
 
-from solvers.common import Solution
+from common import Solution
 
 
 class SingleAgentDynamicProgrammingSolver:

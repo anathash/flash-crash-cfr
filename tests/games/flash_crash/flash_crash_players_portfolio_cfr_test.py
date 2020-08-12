@@ -8,7 +8,7 @@ from Orders import Sell, Buy
 from SysConfig import SysConfig
 from constants import CHANCE, ATTACKER, BUY, SELL, SIM_TRADE, DEFENDER, MARKET
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState, PlayersHiddenInfo
-from solvers.ActionsManager import ActionsManager
+from ActionsManager import ActionsManager
 
 
 def f1_margin_call_side_effect(assets):

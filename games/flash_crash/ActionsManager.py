@@ -1,14 +1,14 @@
 import copy
 
 import numpy
-from sortedcontainers import SortedDict, SortedList, SortedKeyList
+from sortedcontainers import SortedKeyList
 import AssetFundNetwork
+from common import copy_network
 from constants import MAX_ORDERS_PER_ASSETS, SELL, BUY
 import itertools
 from Orders import Sell, Buy
-from SysConfig import SysConfig
 from flash_crash_players_cfr import AttackerMoveGameState, DefenderMoveGameState
-from solvers.common import copy_network
+
 
 
 class Attack:

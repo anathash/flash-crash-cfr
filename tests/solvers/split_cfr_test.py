@@ -1,13 +1,13 @@
 import unittest
 
 import numpy
-from numpy import isclose
 
 from SysConfig import SysConfig
 from exp.cfr_experiment_runner import compute_cfr_equilibrium, compute_cfr_ppa_equilibrium
 from exp.network_generators import get_network_from_dir
-from solvers.ActionsManager import ActionsManager
-from solvers.split_game_cfr import SplitGameCFR
+from ActionsManager import ActionsManager
+from split_game_cfr import SplitGameCFR
+
 
 class TestSplitCFR(unittest.TestCase):
 
@@ -36,7 +36,7 @@ class TestSplitCFR(unittest.TestCase):
                       'num_assets': 3,
                       'step_order_size': SysConfig.get("STEP_ORDER_SIZE") * 2,
                       'max_order_num': 1}
-        network  = get_network_from_dir('../../../../results/three_assets_net')
+        network  = get_network_from_dir('../resources/three_assets_net')
         network.limit_trade_step = True
         (main_game_results, selector_game_result) = self.get_split_cfr_eq(exp_params['defender_budget'],
                                          exp_params['attacker_budgets'],
@@ -72,7 +72,7 @@ class TestSplitCFR(unittest.TestCase):
                       'num_assets': 3,
                       'step_order_size': SysConfig.get("STEP_ORDER_SIZE") * 2,
                       'max_order_num': 1}
-        network  = get_network_from_dir('../../../../resources/three_assets_net')
+        network  = get_network_from_dir('../resources/three_assets_net')
         network.limit_trade_step = True
         main_game_results, selector_game_result = self.get_split_cfr_eq(exp_params['defender_budget'],
                                          exp_params['attacker_budgets'],

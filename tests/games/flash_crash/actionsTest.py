@@ -2,7 +2,7 @@ import operator
 import unittest
 
 import AssetFundNetwork
-from AssetFundNetwork import Asset, Fund
+from AssetFundNetwork import Fund
 from Orders import Sell,  Buy
 from SysConfig import SysConfig
 from actions import get_possible_attacks, get_possible_defenses

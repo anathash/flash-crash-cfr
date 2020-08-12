@@ -5,7 +5,7 @@ import AssetFundNetwork
 from AssetFundNetworkTest import MockMarketImpactTestCalculator
 from MarketImpactCalculator import MarketImpactCalculator
 from Orders import NoLimitOrder, Sell
-from solvers.common import Solution
+from common import Solution
 from solvers.single_agent_solver import SingleAgentESSolver
 
 

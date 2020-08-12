@@ -1,11 +1,7 @@
-import copy
-
-from AssetFundNetwork import AssetFundsNetwork
 import random
 
-from constants import ATTACKER, CHANCE, DEFENDER, MARKET, BUY, SELL, SIM_TRADE
+from constants import ATTACKER, CHANCE
 from games.bases import GameStateBase
-from solvers.common import copy_network
 
 
 class SearchSelectorGameStateBase(GameStateBase):

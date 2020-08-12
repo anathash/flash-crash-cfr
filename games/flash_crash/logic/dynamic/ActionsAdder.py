@@ -3,7 +3,7 @@ from solvers import ActionsManager
 
 
 class ActionsAdder:
-    def __init__(self, actions_manager:ActionsManager, asset_sym, old_price, new_price):
+    def __init__(self, actions_manager: ActionsManager, asset_sym, old_price, new_price):
         self.changed_asset = asset_sym
         self.actions_manger = actions_manager
         self.actions_manger.update_asset(asset_sym, old_price, new_price)

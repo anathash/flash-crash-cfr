@@ -3,9 +3,9 @@ import copy
 from AssetFundNetwork import AssetFundsNetwork
 import random
 
+from common import copy_network
 from constants import ATTACKER, CHANCE, DEFENDER, MARKET, BUY, SELL, SIM_TRADE
 from games.bases import GameStateBase
-from solvers.common import copy_network
 
 
 class Budget:

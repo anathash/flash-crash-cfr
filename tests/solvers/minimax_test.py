@@ -8,7 +8,7 @@ from Orders import Sell
 from SysConfig import SysConfig
 
 from constants import ATTACKER, MARKET, DEFENDER
-from solvers.ActionsManager import ActionsManager
+from ActionsManager import ActionsManager
 from solvers.minimax import minimax, MiniMaxTree, minimax2, alphabeta, single_agent
 from mocks import MockFund, MockMarketImpactTestCalculator
 
@@ -146,7 +146,7 @@ class TestMinimax(unittest.TestCase):
         SysConfig.set("TIME_STEP_MINUTES", 1)
         SysConfig.set('DAILY_PORTION_PER_MIN',1/390)
         SysConfig.set("MAX_NUM_ORDERS", 1)
-        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2,'f3':f3},
+        network = AssetFundNetwork.AssetFundsNetwork(funds = {'f1':f1, 'f2':f2, 'f3':f3},
                                                      assets={'a1':a1, 'a2':a2},
                                                      mi_calc=MockMarketImpactTestCalculator(),
                                                      limit_trade_step = True)

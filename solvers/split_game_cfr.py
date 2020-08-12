@@ -1,11 +1,12 @@
 from math import inf
 
 from SysConfig import SysConfig
+from cfr import VanillaCFR
 from exp.network_generators import get_network_from_dir
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
 from flash_crash_portfolios_selector_cfr import PortfolioSelectorFlashCrashRootChanceGameState
-from solvers.ActionsManager import ActionsManager
-from solvers.cfr import VanillaCFR
+from ActionsManager import ActionsManager
+
 
 
 class SplitGameCFR:

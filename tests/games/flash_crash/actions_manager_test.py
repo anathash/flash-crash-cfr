@@ -6,7 +6,8 @@ from AssetFundNetwork import Asset, Fund
 from Orders import Sell,  Buy
 from constants import BUY, SELL
 from mocks import  MockMarketImpactTestCalculator
-from solvers.ActionsManager import Attack, ActionsManager
+
+from ActionsManager import Attack, ActionsManager
 
 
 class TestActionsManager  (unittest.TestCase):

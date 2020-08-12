@@ -5,7 +5,7 @@ from AssetFundNetwork import AssetFundsNetwork
 from Orders import Sell
 
 
-def single_fund_attack_optimal_attack_generator(network:AssetFundsNetwork, fund_sym, mic:MarketImpactCalculator,
+def single_fund_attack_optimal_attack_generator(network:AssetFundsNetwork, fund_sym, mic: MarketImpactCalculator,
                                                 order_size, max_num_orders):
 
     fund = network.funds[fund_sym]

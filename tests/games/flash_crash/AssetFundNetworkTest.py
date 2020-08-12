@@ -396,14 +396,14 @@ class TestAssetFundsNetwork  (unittest.TestCase):
         self.assertEqual(network.buy_orders['a1'],1)
 
     def test_read_two_assets_from_file(self):
-        assets = AssetFundNetwork.read_assets_file('../../../resources/assets.csv', 2)
+        assets = AssetFundNetwork.read_assets_file('../../resources/assets.csv', 2)
         expected_assets = {'A1':Asset( price=145.6, daily_volume=605.3, symbol='A1'),
                            'A2': Asset(price=100, daily_volume=10, symbol='A2')}
         self.assertEqual(len(assets), 2)
         self.assertEqual(assets,expected_assets)
 
     def test_read_all_assets_from_file(self):
-        assets = AssetFundNetwork.read_assets_file('../../../resources/assets.csv', 4)
+        assets = AssetFundNetwork.read_assets_file('../../resources/assets.csv', 4)
         expected_assets = {'A1':Asset( price=145.6, daily_volume=605.3, symbol='A1'),
                            'A2': Asset(price=100, daily_volume=10, symbol='A2'),
                            'A3': Asset(price=100, daily_volume=10, symbol='A3')}

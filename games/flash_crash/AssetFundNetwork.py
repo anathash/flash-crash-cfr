@@ -14,7 +14,7 @@ import jsonpickle
 import MarketImpactCalculator
 from Orders import Sell, Buy
 from SysConfig import SysConfig
-from constants import MS_IN_MINUTE, MINUTES_IN_TRADING_DAY
+from constants import MINUTES_IN_TRADING_DAY
 
 'TODO: do we need the total market cap of assets or do funds hold the entire market'
 
@@ -263,8 +263,8 @@ class AssetFundsNetwork:
 
     @classmethod
     def gen_network_from_graph_with_assets(cls, g, investment_proportions,
-                               initial_capitals, initial_leverages, assets,
-                               tolerances,  mi_calc: MarketImpactCalculator):
+                                           initial_capitals, initial_leverages, assets,
+                                           tolerances, mi_calc: MarketImpactCalculator):
         funds = {}
         fund_nodes, asset_nodes = nx.bipartite.sets(g)
         num_funds = len(fund_nodes)
@@ -290,7 +290,7 @@ class AssetFundsNetwork:
 
     @classmethod
     def generate_random_funds_network(cls, density, num_funds, initial_capitals, initial_leverages,
-                                 tolerances, num_assets, assets_file, mi_calc: MarketImpactCalculator):
+                                      tolerances, num_assets, assets_file, mi_calc: MarketImpactCalculator):
         connected = False
         while not connected:
             g = nx.algorithms.bipartite.random_graph(num_funds, num_assets, density, directed=True)

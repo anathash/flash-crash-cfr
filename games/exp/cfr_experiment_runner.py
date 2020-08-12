@@ -3,22 +3,22 @@ import csv
 import json
 import os
 from datetime import datetime
-from math import ceil, inf, factorial
+from math import ceil, inf
 
 import numpy
 
 from SysConfig import SysConfig
+from cfr import VanillaCFR
 from constants import ATTACKER
-from exp.network_generators import get_network_from_dir, gen_new_network
+from exp.network_generators import gen_new_network
 from flash_crash_players_cfr import FlashCrashRootChanceGameState
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
 from flash_crash_players_portfolio_per_attacker_cfr import PPAFlashCrashRootChanceGameState
 from flash_crash_portfolios_selector_cfr import PortfolioSelectorFlashCrashRootChanceGameState
-from solvers.ActionsManager import ActionsManager
-from solvers.minimax import minimax, minimax2, alphabeta, single_agent
-from solvers.cfr import VanillaCFR
-from solvers.split_game_cfr import SplitGameCFR
-from solvers.vanilla_cfr_runner import compute_cfr_equilibrium
+from ActionsManager import ActionsManager
+from minimax import single_agent, minimax2, alphabeta
+from split_game_cfr import SplitGameCFR
+from vanilla_cfr_runner import compute_cfr_equilibrium
 
 BUDGET_LOWER_BOUND = 10000000
 BUDGET_UPPER_BOUND = 100000000
@@ -159,7 +159,7 @@ def count(state, counter):
 
 
 def count_game_states(game_network, lower_bound, ratios, portfolios = False):
-    network.limit_trade_step = True
+    game_network.limit_trade_step = True
     defender_budget = lower_bound
     initial_network = copy.deepcopy(game_network)
     attacker_budgets = [int(defender_budget * r) for r in ratios]
@@ -407,9 +407,9 @@ def run_csv_exps():
         json.dump(exp_params, fp)
 
     #compute_node_size_csv(res_dir=res_dir,  max_num_attackers = 4, max_num_portfolios = 4, portfolio_size = 10)
-    count_game_nodes_csv(res_dir=res_dir, defender_budget=exp_params['defender_budget'],
-                        attacker_budgets=exp_params['attacker_budgets'],
-                        max_num_assets = 5)
+    #count_game_nodes_csv(res_dir=res_dir, defender_budget=exp_params['defender_budget'],
+    #                    attacker_budgets=exp_params['attacker_budgets'],
+    #                    max_num_assets = 4)
 
 
 if __name__ == "__main__":

@@ -406,10 +406,10 @@ def run_csv_exps():
     with open(res_dir+'params.json', 'w') as fp:
         json.dump(exp_params, fp)
 
-    #compute_node_size_csv(res_dir=res_dir,  max_num_attackers = 4, max_num_portfolios = 4, portfolio_size = 10)
-    #count_game_nodes_csv(res_dir=res_dir, defender_budget=exp_params['defender_budget'],
-    #                    attacker_budgets=exp_params['attacker_budgets'],
-    #                    max_num_assets = 4)
+    compute_node_size_csv(res_dir=res_dir,  max_num_attackers = 4, max_num_portfolios = 4, portfolio_size = 10)
+    count_game_nodes_csv(res_dir=res_dir, defender_budget=exp_params['defender_budget'],
+                        attacker_budgets=exp_params['attacker_budgets'],
+                        max_num_assets = 4)
 
 
 if __name__ == "__main__":

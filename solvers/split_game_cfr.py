@@ -6,41 +6,39 @@ from exp.network_generators import get_network_from_dir
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
 from flash_crash_portfolios_selector_cfr import PortfolioSelectorFlashCrashRootChanceGameState
 from ActionsManager import ActionsManager
-
+from split_selector_game import SelectorRootChanceGameState
 
 
 class SplitGameCFR:
 
-
-    def compute_portfolio_utilities(self, root, round, action_mgr, iterations):
+    def compute_main_game_utilities(self, root, sub_game_keys, iterations):
         vanilla_cfr = VanillaCFR(root)
-        vanilla_cfr.run(iterations=iterations, round=round)
+        vanilla_cfr.run(iterations=iterations)
         vanilla_cfr.compute_nash_equilibrium()
         # generate portfolio utility table
         vanilla_cfr.value_of_the_game()
-        utilities = {pid: root.children[pid].get_value() for pid in action_mgr.get_probable_portfolios().keys()}
+        utilities = {pid: root.children[pid].get_value() for pid in sub_game_keys}
         cumulative_pos_regret = vanilla_cfr.average_total_imm_regret(iterations)
         return {'utilities':utilities,'pos_regret': cumulative_pos_regret, 'exploitability': 2* cumulative_pos_regret}
 
-    def compute_game_equilibrium(self, attacker_budgets, portfolios_utilities, iterations,action_mgr):
-        p_selector_root = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, portfolios_utilities,
-                                                                         action_mgr.get_portfolios_in_budget_dict())
+    def compute_game_equilibrium(self, attacker_types, subgame_utilities, iterations, attacks_in_budget_dict):
+        p_selector_root = SelectorRootChanceGameState(attacker_types, subgame_utilities, attacks_in_budget_dict)
         cfr = VanillaCFR(p_selector_root)
         cfr.run(iterations=iterations)
         cfr.compute_nash_equilibrium()
-        pids = portfolios_utilities.keys()
+        pids = subgame_utilities.keys()
         nash_eq = {pid:0 for pid in pids}
-        sigma = {b:0 for b in attacker_budgets}
+        sigma = {b:0 for b in attacker_types}
         attackers_eq = {}
         defender_eq = cfr.value_of_the_game()
-        for attacker_budget in attacker_budgets:
-            inf_set = ".{0}".format(attacker_budget)
-            sigma[attacker_budget] = cfr.sigma[inf_set]
-            for pid in action_mgr.get_portfolios_in_budget(attacker_budget):
-                nash_eq[pid] += cfr.nash_equilibrium[inf_set][pid]*1/len(attacker_budgets)
+        for attacker in attacker_types:
+            inf_set = ".{0}".format(attacker)
+            sigma[attacker] = cfr.sigma[inf_set]
+            for pid in attacks_in_budget_dict[attacker]:
+                nash_eq[pid] += cfr.nash_equilibrium[inf_set][pid]*1/len(attacker_types)
 
 
-        for attacker in attacker_budgets:
+        for attacker in attacker_types:
             attackers_eq[attacker] = p_selector_root.children[str(attacker)].get_value()
             #regrets[attacker] = cfr.cumulative_regrets[p_selector_root.children[str(attacker)].inf_set()]
             #'regrets':regrets
@@ -73,14 +71,22 @@ class SplitGameCFR:
         print('defender equilibrium value is  '.format(results['defender']))
         print('attackers equilibrium values are  '.format(results['attackers']))
 
-    def run(self, action_mgr, network, defender_budget, attacker_budgets, game1_iterations, game2_iterations, round):
+    def run_old(self, action_mgr, network, defender_budget, attacker_budgets, game1_iterations, game2_iterations, round):
         root = PortfolioFlashCrashRootChanceGameState(action_mgr=action_mgr,
                                                       af_network=network,
                                                       defender_budget=defender_budget)
-        main_game_results = self.compute_portfolio_utilities(root, round, action_mgr, game1_iterations)
+        main_game_results = self.compute_portfolio_utilities(root, round, action_mgr.get_probable_portfolios().keys(), game1_iterations)
         selector_game_result = self.compute_game_equilibrium(attacker_budgets, main_game_results['utilities'], game2_iterations, action_mgr)
         return (main_game_results, selector_game_result)
 
+    def run(self, main_game_root, attacker_types, game1_iterations,
+            game2_iterations, attacks_in_budget_dict, subgame_keys):
+        main_game_results = self.compute_main_game_utilities(main_game_root, subgame_keys, game1_iterations)
+        selector_game_result = self.compute_game_equilibrium(attacker_types=attacker_types,
+                                                             subgame_utilities=main_game_results['utilities'],
+                                                             iterations=game2_iterations,
+                                                             attacks_in_budget_dict=attacks_in_budget_dict)
+        return (main_game_results, selector_game_result)
 
 def main():
     defender_budget = 100000000
@@ -92,13 +98,16 @@ def main():
     # assets, step_order_size, max_order_num=1, attacker_budgets
     cfr_actions_mgr = ActionsManager(assets=network.assets, step_order_size=SysConfig.get("STEP_ORDER_SIZE"),
                                      max_order_num=1, attacker_budgets=attacker_budgets)
-
+    root = PortfolioFlashCrashRootChanceGameState(action_mgr=cfr_actions_mgr,
+                                                  af_network=network,
+                                                  defender_budget=defender_budget)
     split_game_cfr = SplitGameCFR()
-    split_game_cfr.run(action_mgr=cfr_actions_mgr, network=network, defender_budget=defender_budget,
-                  attacker_budgets=attacker_budgets,
-                  game1_iterations=200,
-                  game2_iterations=800,
-                  round=1)
+
+    split_game_cfr.run(main_game_root = root, attacker_types=attacker_budgets,
+                       attack_costs= cfr_actions_mgr.get_probable_portfolios().keys(),
+                       game1_iterations=200,
+                       game2_iterations=800,
+                       attacks_in_budget_dict = cfr_actions_mgr.get_portfolios_in_budget_dict())
 
 
 if __name__ == "__main__":

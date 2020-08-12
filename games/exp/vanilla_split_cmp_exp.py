@@ -125,11 +125,17 @@ def get_split_cfr_exploitabilty(defender_budget, attacker_budgets, network, step
                                      max_order_num=max_order_num, attacker_budgets=attacker_budgets)
 
     split_game_cfr = SplitGameCFR()
-    (main_game_results, selector_game_result) = split_game_cfr.run(action_mgr=cfr_actions_mgr, network=network, defender_budget=defender_budget,
-                      attacker_budgets=attacker_budgets,
-                      game1_iterations=ceil(iterations*main_game_iteration_portion),
-                      game2_iterations=ceil(iterations*(1-main_game_iteration_portion)),
-                      round=1)
+
+    root = PortfolioFlashCrashRootChanceGameState(action_mgr=cfr_actions_mgr,
+                                                  af_network=network,
+                                                  defender_budget=defender_budget)
+
+    (main_game_results, selector_game_result) = split_game_cfr.run(main_game_root=root, attacker_types=attacker_budgets,
+                                     game1_iterations=ceil(iterations*main_game_iteration_portion),
+                                     game2_iterations=ceil(iterations*(1-main_game_iteration_portion)),
+                                     attacks_in_budget_dict=cfr_actions_mgr.get_portfolios_in_budget_dict(),
+                                     subgame_keys=cfr_actions_mgr.get_portfolios().keys())
+
     return main_game_results['exploitability']+selector_game_result['exploitability']
 
 

@@ -4,7 +4,6 @@ from SysConfig import SysConfig
 from cfr import VanillaCFR
 from exp.network_generators import get_network_from_dir
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
-from flash_crash_portfolios_selector_cfr import PortfolioSelectorFlashCrashRootChanceGameState
 from ActionsManager import ActionsManager
 from split_selector_game import SelectorRootChanceGameState
 

@@ -14,10 +14,10 @@ from exp.network_generators import gen_new_network
 from flash_crash_players_cfr import FlashCrashRootChanceGameState
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
 from flash_crash_players_portfolio_per_attacker_cfr import PPAFlashCrashRootChanceGameState
-from flash_crash_portfolios_selector_cfr import PortfolioSelectorFlashCrashRootChanceGameState
 from ActionsManager import ActionsManager
 from minimax import single_agent, minimax2, alphabeta
 from split_game_cfr import SplitGameCFR
+from split_selector_game import SelectorRootChanceGameState
 from vanilla_cfr_runner import compute_cfr_equilibrium
 
 BUDGET_LOWER_BOUND = 10000000
@@ -229,7 +229,7 @@ def count_portfolios_nodes( defender_budget, attacker_budgets, network, step_ord
     root = PortfolioFlashCrashRootChanceGameState(action_mgr=split_actions_mgr, af_network=network,
                                                   defender_budget=defender_budget)
     dummy_utilities = {pid: 0 for pid in split_actions_mgr.get_probable_portfolios().keys()}
-    p_selector_root = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, dummy_utilities,
+    p_selector_root = SelectorRootChanceGameState(attacker_budgets, dummy_utilities,
                                                                      split_actions_mgr.get_portfolios_in_budget_dict())
     return root.tree_size + p_selector_root.tree_size
 

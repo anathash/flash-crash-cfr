@@ -1,10 +1,10 @@
 import unittest
 
 from constants import CHANCE, ATTACKER
-from archived_flash_crash_portfolios_selector_cfr import PortfolioSelectorFlashCrashRootChanceGameState
+from split_selector_game import SelectorRootChanceGameState
 
 
-class TestFlashCrashPortfolioPlayers_CFR  (unittest.TestCase):
+class SelectorGame  (unittest.TestCase):
 
     @staticmethod
     def fill_dict(tree_size, to_move, actions, inf_set, terminal, eval):
@@ -32,8 +32,8 @@ class TestFlashCrashPortfolioPlayers_CFR  (unittest.TestCase):
 
     def test_tree(self):
         attacker_budgets = [10, 20]
-        portfolios_utilities = {'p1':0, 'p2':-1}
-        actual_tree = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, portfolios_utilities,
+        attack_utilities = {'p1':0, 'p2':-1}
+        actual_tree = SelectorRootChanceGameState(attacker_budgets, attack_utilities,
                                                                      {10:['p1', 'p2'], 20:['p1', 'p2']})
         expected_tree = self.gen_tree()
         self.assertEqual(actual_tree.chance_prob(), 1./2)
@@ -41,8 +41,8 @@ class TestFlashCrashPortfolioPlayers_CFR  (unittest.TestCase):
 
     def test_tree2(self):
         attacker_budgets = [10, 20]
-        portfolios_utilities = {'p1':0, 'p2':-1}
-        actual_tree = PortfolioSelectorFlashCrashRootChanceGameState(attacker_budgets, portfolios_utilities,
+        attack_utilities = {'p1':0, 'p2':-1}
+        actual_tree = SelectorRootChanceGameState(attacker_budgets, attack_utilities,
                                                                      {10:['p1', 'p2'], 20:['p1']})
         expected_tree = self.gen_tree2()
         self.assertEqual(actual_tree.chance_prob(), 1./2)
@@ -55,11 +55,11 @@ class TestFlashCrashPortfolioPlayers_CFR  (unittest.TestCase):
                                   inf_set='.10',
                                   terminal=False, eval=None)
 
-        node_1_0_0 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+        node_1_0_0 = self.fill_dict(tree_size=1, to_move='ATTACK', actions = [],
                                   inf_set = '.10.p1',
                                   terminal = True, eval=0)
 
-        node_1_0_1 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+        node_1_0_1 = self.fill_dict(tree_size=1, to_move='ATTACK', actions = [],
                                   inf_set = '.10.p2',
                                   terminal = True, eval=-1)
 
@@ -67,7 +67,7 @@ class TestFlashCrashPortfolioPlayers_CFR  (unittest.TestCase):
                                   inf_set='.20',
                                   terminal=False, eval=None)
 
-        node_1_1_0 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+        node_1_1_0 = self.fill_dict(tree_size=1, to_move='ATTACK', actions = [],
                                   inf_set = '.20.p1',
                                   terminal = True, eval=0)
 
@@ -91,19 +91,19 @@ class TestFlashCrashPortfolioPlayers_CFR  (unittest.TestCase):
                                   inf_set='.20',
                                   terminal=False, eval=None)
 
-        node_1_0_0 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+        node_1_0_0 = self.fill_dict(tree_size=1, to_move='ATTACK', actions = [],
                                   inf_set = '.10.p1',
                                   terminal = True, eval=0)
 
-        node_1_0_1 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+        node_1_0_1 = self.fill_dict(tree_size=1, to_move='ATTACK', actions = [],
                                   inf_set = '.10.p2',
                                   terminal = True, eval=-1)
 
-        node_1_1_0 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+        node_1_1_0 = self.fill_dict(tree_size=1, to_move='ATTACK', actions = [],
                                   inf_set = '.20.p1',
                                   terminal = True, eval=0)
 
-        node_1_1_1 = self.fill_dict(tree_size=1, to_move='PORTFOLIO', actions = [],
+        node_1_1_1 = self.fill_dict(tree_size=1, to_move='ATTACK', actions = [],
                                   inf_set = '.20.p2',
                                   terminal = True, eval=-1)
 

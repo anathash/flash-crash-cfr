@@ -3,8 +3,8 @@ from math import inf
 
 from constants import CHANCE, ATTACKER, DEFENDER
 from search.Grid import Grid, Actions
+from search.search_common_players import SearchAttackerMoveGameState, SearchDefenderMoveGameState
 from search.search_players_complete_game import SearchCompleteGameRootChanceGameState, \
-    SearchCompleteGameAttackerMoveGameState, SearchCompleteGameDefenderMoveGameState, \
     SearchCompleteGameSelectorGameState
 
 
@@ -45,7 +45,7 @@ class TestSearchCompleteGame  (unittest.TestCase):
         self.assertCountEqual(list(node.children.keys()), ['(4, 0)', '(4, 2)'])
         self.assertEqual(node.inf_set(), '.b:5')
         for child in node.children.values():
-            self.assertTrue(isinstance(child, SearchCompleteGameAttackerMoveGameState))
+            self.assertTrue(isinstance(child, SearchAttackerMoveGameState))
 
     def test_non_terminal_attacker_node(self):
         root = self.setup_tree(1)
@@ -64,7 +64,7 @@ class TestSearchCompleteGame  (unittest.TestCase):
                               ['EAST','NORTH_EAST', 'SOUTH_EAST'])
         self.assertEqual(node.inf_set(), '.b:4.g:(4, 0)')
         for child in node.children.values():
-            self.assertTrue(isinstance(child, SearchCompleteGameDefenderMoveGameState))
+            self.assertTrue(isinstance(child, SearchDefenderMoveGameState))
 
     def test_non_terminal_defender_node(self):
         root = self.setup_tree(1)
@@ -87,7 +87,7 @@ class TestSearchCompleteGame  (unittest.TestCase):
         self.assertCountEqual(list(node.children.keys()),actions)
         self.assertEqual(node.inf_set(), '..')
         for child in node.children.values():
-            self.assertTrue(isinstance(child, SearchCompleteGameAttackerMoveGameState))
+            self.assertTrue(isinstance(child, SearchAttackerMoveGameState))
 
     def test_terminal_attacker_node_not_caught(self):
         root = self.setup_tree(1)

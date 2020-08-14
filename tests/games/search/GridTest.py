@@ -118,7 +118,7 @@ class TestGrid  (unittest.TestCase):
 
     def test_get_games_values(self):
         grid = Grid()
-        self.assertEqual(grid.get_game_value(), None)
+        self.assertEqual(grid.get_game_value(), -inf)
         grid.locations[OCCUPANTS.ATTACKER] = (1, 1)
         grid.locations[OCCUPANTS.P1] = (1, 1)
         grid.locations[OCCUPANTS.P2] = (2, 1)
@@ -219,8 +219,38 @@ class TestGrid  (unittest.TestCase):
         self.assertEqual(new_grid.locations[OCCUPANTS.P2], (3, 0))
         self.assertCountEqual(new_grid.matrix[(1, 1)].occupants, [])
         self.assertListEqual(new_grid.matrix[(3, 1)].occupants, [])
-        self.assertCountEqual(new_grid.matrix[(0, 1)].occupants, [ OCCUPANTS.ATTACKER])
+        self.assertCountEqual(new_grid.matrix[(0, 1)].occupants, [OCCUPANTS.ATTACKER])
         self.assertCountEqual(new_grid.matrix[(1, 2)].occupants, [OCCUPANTS.P1])
         self.assertListEqual(new_grid.matrix[(3, 0)].occupants, [OCCUPANTS.P2])
+
+    def test_get_attacks_in_budget_dict(self):
+        grid = Grid()
+        budgets = [4, 5, 11]
+        expected_dict = {4:[(4,0)],5:[(4,0),(4,2)],11:[(4,0),(4,1), (4,2)]}
+        self.assertDictEqual(expected_dict, grid.get_attacks_in_budget_dict(budgets))
+
+    def test_get_attacks_probabilities(self):
+        grid = Grid()
+        budgets = [4, 5, 11]
+        expected_probs = {(4,0):11./18., (4, 1):2./18, (4, 2): 5./18}
+        self.assertDictEqual(expected_probs, grid.get_attacks_probabilities(budgets))
+
+    def test_attacker_reached_her_goal(self):
+        grid = Grid().set_attacker_goal((4, 0))
+        self.assertFalse(grid.attacker_reached_her_goal())
+        grid.locations[OCCUPANTS.ATTACKER] = (4, 0)
+        self.assertTrue(grid.attacker_reached_her_goal())
+
+    def test_attacker_caught(self):
+        grid = Grid()
+        self.assertFalse(grid.attacker_caught())
+        grid.locations[OCCUPANTS.ATTACKER] = (1,1)
+        self.assertTrue(grid.attacker_caught())
+        grid.locations[OCCUPANTS.ATTACKER] = (1, 0)
+        self.assertFalse(grid.attacker_caught())
+        grid.locations[OCCUPANTS.ATTACKER] = (3, 1)
+        self.assertTrue(grid.attacker_caught())
+
+
 if __name__ == '__main__':
     unittest.main()

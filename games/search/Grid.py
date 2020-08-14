@@ -41,9 +41,9 @@ ATTACKER_TRANSITIONS = {(0,1):[Actions.NORTH_EAST, Actions.EAST, Actions.SOUTH_E
                         (3,2):[Actions.STAY, Actions.EAST],
 }
 
-SUCCESFULL_ATTACK_PAYOFF = {(3,0):3,
-                            (3,1):10,
-                            (3,2):5}
+SUCCESFULL_ATTACK_PAYOFF = {(4,0):3,
+                            (4,1):10,
+                            (4,2):5}
 
 
 class Node:
@@ -51,6 +51,8 @@ class Node:
         self.occupants = occupants
         self.tracks = tracks
         self.payoff = payoff
+
+INITAL_COSTS = {(4,0):3, (4,1):10, (4,2):5}
 
 INITIAL_GRID = {
     (0,1): Node([OCCUPANTS.ATTACKER]),
@@ -70,6 +72,7 @@ INITIAL_GRID = {
 
 class Grid:
     def __init__(self, attacker_goal = None, matrix = INITIAL_GRID,
+                 costs = INITAL_COSTS,
                  attacker_location = (0,1),
                  p1_location = (1,1),
                  p2_location = (3,1)):
@@ -80,6 +83,11 @@ class Grid:
         self.locations[OCCUPANTS.P1] = p1_location
         self.locations[OCCUPANTS.P2] = p2_location
         self.matrix = matrix
+        self.costs = costs
+
+    def get_goal_costs(self):
+        return self.costs
+
 
     def set_attacker_goal(self, goal):
         new_grid = copy.deepcopy(self)
@@ -144,22 +152,27 @@ class Grid:
         return self.locations[OCCUPANTS.ATTACKER] == self.locations[OCCUPANTS.P1] or \
                self.locations[OCCUPANTS.ATTACKER] == self.locations[OCCUPANTS.P2]
 
+    def attacker_reached_goal_nodes(self):
+        return self.locations[OCCUPANTS.ATTACKER][0] == MAX_X
+
+    def attacker_reached_her_goal(self):
+        return self.attacker_goal == self.locations[OCCUPANTS.ATTACKER]
+
     def get_game_value(self):
         #defender caught attacker
-        if self.locations[OCCUPANTS.ATTACKER] == self.locations[OCCUPANTS.P1]\
-                or self.locations[OCCUPANTS.ATTACKER] == self.locations[OCCUPANTS.P2]:
+        if self.attacker_caught():
             return 0
         # attacker reached its goal node
-        if self.attacker_goal == self.locations[OCCUPANTS.ATTACKER]:
+        if self.attacker_reached_her_goal():
             x = self.locations[OCCUPANTS.ATTACKER][0]
             y = self.locations[OCCUPANTS.ATTACKER][1]
             return self.matrix[(x,y)].payoff
 
         #reached a goal node not its own
-        if self.locations[OCCUPANTS.ATTACKER][0] == MAX_X:
+        if self.attacker_reached_goal_nodes():
             return -inf
 
-        return None
+        return -inf
 
     def update_matrix(self, occupant, action, tracks = False):
         current_x = self.locations[occupant][0]
@@ -192,3 +205,19 @@ class Grid:
     def __execute_defender_action(self, p1_action, p2_action):
         self.update_matrix(OCCUPANTS.P1, p1_action)
         self.update_matrix(OCCUPANTS.P2, p2_action)
+
+    def get_attacks_in_budget_dict(self, attacker_budgets):
+        attacks_in_budget_dict = {x: [] for x in attacker_budgets}
+        for goal, cost in self.costs.items():
+            for budget in attacker_budgets:
+                if budget >= cost:
+                    attacks_in_budget_dict[budget].append(goal)
+        return attacks_in_budget_dict
+
+    def get_attacks_probabilities(self, attacker_budgets):
+        attacks_in_budget = self.get_attacks_in_budget_dict(attacker_budgets)
+        probs = {x:0 for x in self.costs.keys()}
+        for budget, attack_list in attacks_in_budget.items():
+            for attack in attack_list:
+                probs[attack] += 1/(len(attacker_budgets)*len(attack_list))
+        return probs

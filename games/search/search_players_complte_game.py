@@ -5,6 +5,7 @@ import random
 
 from constants import ATTACKER, CHANCE, DEFENDER
 from games.bases import GameStateBase
+from search import Grid
 
 
 class SearchCompleteGameStateBase(GameStateBase):
@@ -14,6 +15,8 @@ class SearchCompleteGameStateBase(GameStateBase):
         self.actions_history=actions_history
         self.grid = grid
         self.children = {}
+        self.rounds_left = rounds_left
+        self.terminal = terminal
 
     def inf_set(self):
         return self._information_set
@@ -21,21 +24,20 @@ class SearchCompleteGameStateBase(GameStateBase):
     def evaluation(self):
         if not self.is_terminal():
             raise RuntimeError("trying to evaluate non-terminal node")
-        if self.self.rounds_left == 0:
-            return inf
-        else:
-            return self.grid.get_game_value()
+
+        return self.grid.get_game_value()
 
     def is_terminal(self):
-        return self.rounds_left == 0 or self.grid.attacker_caught()
+        return self.terminal
+
 
 class SearchCompleteGameRootChanceGameState(GameStateBase):
-    def __init__(self, goal_costs, grid, attacker_budgets):
+    def __init__(self, grid, attacker_budgets):
         super().__init__(parent=None, to_move=CHANCE, grid=grid, actions = [str(x) for x in attacker_budgets])
         self.children = {
             str(attacker_budget): SearchCompleteGameSelectorGameState(
                 parent=self,  to_move=ATTACKER,
-                grid=grid, attacker_budget=attacker_budget, goal_costs=goal_costs
+                grid=grid, attacker_budget=attacker_budget, goal_costs=grid.goal_costs
             ) for attacker_budget in attacker_budgets
         }
 
@@ -82,18 +84,18 @@ class SearchCompleteGameSelectorGameState(SearchCompleteGameStateBase):
 
 class SearchCompleteGameAttackerMoveGameState(SearchCompleteGameStateBase):
     def __init__(self, parent,  to_move, grid,  actions_history, rounds_left):
-        if self.is_terminal():
+        terminal = (rounds_left == 0 or grid.attacker_caught() or grid.attacker_reached_goal_nodes())
+        if terminal:
             actions = []
         else:
             actions = grid.get_attacker_actions()
 
-        super().__init__(parent=parent,  to_move=to_move, actions = [str(x) for x in actions ],
-                           actions_history=actions_history, rounds_left = rounds_left)
-
+        super().__init__(parent=parent,  to_move=to_move, actions = [x.name for x in actions ],
+                         grid=grid, actions_history=actions_history, rounds_left = rounds_left, terminal=terminal)
         for action in actions:
             actions_history2 = copy.deepcopy(actions_history)
-            actions_history2.append(action)
-            self.children[str(action)] = SearchCompleteGameDefenderMoveGameState(
+            actions_history2[ATTACKER].append(action.name)
+                self.children[action.name] = SearchCompleteGameDefenderMoveGameState(
                 parent=self,
                 to_move=DEFENDER,
                 grid=grid.apply_attacker_action(action),
@@ -110,21 +112,25 @@ class SearchCompleteGameAttackerMoveGameState(SearchCompleteGameStateBase):
 
 class SearchCompleteGameDefenderMoveGameState(SearchCompleteGameStateBase):
 
+    @staticmethod
+    def action_str(action):
+        return '(' + action[0].name + ', ' + action[1].name + ')'
+
     def __init__(self, parent, to_move, actions_history, grid:Grid, rounds_left):
         actions = grid.get_defender_actions()
-        super().__init__(parent=parent, to_move=to_move, actions=[(str(x(0)), str(x(1))) for x in actions],
-                         actions_history=actions_history, rounds_left = rounds_left)
+        super().__init__(parent=parent, to_move=to_move, actions=[self.action_str(x) for x in actions],
+                         grid=grid, actions_history=actions_history, rounds_left = rounds_left)
         for action in actions:
             actions_history2 = copy.deepcopy(actions_history)
-            actions_history2.append(action)
-            self.children[str(action)] = SearchCompleteGameDefenderMoveGameState(
+            actions_history2[DEFENDER].append(self.action_str(action))
+            self.children[self.action_str(action)]  = SearchCompleteGameDefenderMoveGameState(
                 parent=self,
                 to_move=ATTACKER,
-                grid=grid.apply_defender_action(action),
+                grid=grid.apply_defender_action(action[0],action[1]),
                 actions_history=actions_history2,
                 rounds_left=rounds_left-1
             )
-        self._information_set = ".{0}".format(".".join(self.actions_history[DEFENDER]))
+        self._information_set = "..{0}".format(".".join(self.actions_history[DEFENDER]))
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
 
 

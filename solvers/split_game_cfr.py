@@ -20,10 +20,54 @@ class SplitGameCFR:
         cumulative_pos_regret = vanilla_cfr.average_total_imm_regret(iterations)
         return {'utilities':utilities,'pos_regret': cumulative_pos_regret, 'exploitability': 2* cumulative_pos_regret}
 
-    def compute_game_equilibrium(self, attacker_types, subgame_utilities, iterations, attacks_in_budget_dict):
+
+
+    def compute_game_mixed_equilibrium(self, attacker_types, subgame_utilities, iterations, attacks_in_budget_dict):
         p_selector_root = SelectorRootChanceGameState(attacker_types, subgame_utilities, attacks_in_budget_dict)
         cfr = VanillaCFR(p_selector_root)
-        cfr.run(iterations=iterations)
+        cfr.run(iterations=1)
+        cfr.compute_nash_equilibrium()
+        pids = subgame_utilities.keys()
+        nash_eq = {pid:0 for pid in pids}
+        sigma = {b:0 for b in attacker_types}
+        attackers_eq = {}
+        defender_eq = cfr.value_of_the_game()
+        for attacker in attacker_types:
+            inf_set = ".{0}".format(attacker)
+            sigma[attacker] = cfr.sigma[inf_set]
+            for pid in attacks_in_budget_dict[attacker]:
+                nash_eq[pid] += cfr.nash_equilibrium[inf_set][pid]*1/len(attacker_types)
+
+
+        for attacker in attacker_types:
+            attackers_eq[attacker] = p_selector_root.children[str(attacker)].get_value()
+            #regrets[attacker] = cfr.cumulative_regrets[p_selector_root.children[str(attacker)].inf_set()]
+            #'regrets':regrets
+
+        cumulative_pos_regret = cfr.average_total_imm_regret(iterations)
+        return {'pos_regret': cumulative_pos_regret, 'exploitability': 2* cumulative_pos_regret,
+                  'defender':defender_eq, 'attackers':attackers_eq,
+                  'portfolios_dist':nash_eq, 'sigma':sigma}
+
+
+    def compute_pure_game_equilibrium(self, attacker_types, subgame_utilities, attacks_in_budget_dict):
+        iterations = 1
+        p_selector_root = SelectorRootChanceGameState(attacker_types, subgame_utilities, attacks_in_budget_dict)
+        cfr = VanillaCFR(p_selector_root)
+        for attacker in attacker_types:
+            min_utility = inf
+            choice = None
+            for action in cfr.sigma['.'+str(attacker)].keys():
+                if subgame_utilities[action] < min_utility:
+                    min_utility = subgame_utilities[action]
+                    choice = action
+            for action in cfr.sigma['.'+str(attacker)].keys():
+                if action == choice:
+                    cfr.sigma['.' + str(attacker)][action] = 1
+                else:
+                    cfr.sigma['.' + str(attacker)][action] = 0
+
+        cfr.run(iterations=1)
         cfr.compute_nash_equilibrium()
         pids = subgame_utilities.keys()
         nash_eq = {pid:0 for pid in pids}
@@ -81,9 +125,8 @@ class SplitGameCFR:
     def run(self, main_game_root, attacker_types, game1_iterations,
             game2_iterations, attacks_in_budget_dict, subgame_keys):
         main_game_results = self.compute_main_game_utilities(main_game_root, subgame_keys, game1_iterations)
-        selector_game_result = self.compute_game_equilibrium(attacker_types=attacker_types,
+        selector_game_result = self.compute_pure_game_equilibrium(attacker_types=attacker_types,
                                                              subgame_utilities=main_game_results['utilities'],
-                                                             iterations=game2_iterations,
                                                              attacks_in_budget_dict=attacks_in_budget_dict)
         return (main_game_results, selector_game_result)
 

@@ -1,8 +1,9 @@
 import copy
 
 from bases import GameStateBase
-from constants import ATTACKER, DEFENDER
+from constants import ATTACKER, DEFENDER, GRID
 from search import Grid
+from search.Grid import OCCUPANTS
 
 
 class SearchGameStateBase(GameStateBase):
@@ -25,35 +26,35 @@ class SearchGameStateBase(GameStateBase):
         return self.grid.get_game_value()
 
     def is_terminal(self):
-        return self.terminal
+        return self.grid.is_terminal()
 
 
 class SearchAttackerMoveGameState(SearchGameStateBase):
     def __init__(self, parent,  to_move, grid,  actions_history, rounds_left):
-        terminal = (rounds_left == 0 or grid.attacker_caught() or grid.attacker_reached_goal_nodes())
-        if terminal:
+        if grid.is_terminal():
             actions = []
         else:
             actions = grid.get_attacker_actions()
 
         super().__init__(parent=parent,  to_move=to_move, actions = [x.name for x in actions ],
-                         grid=grid, actions_history=actions_history, rounds_left = rounds_left, terminal=terminal)
+                         grid=grid, actions_history=actions_history, rounds_left = rounds_left, terminal=False)
         for action in actions:
+            new_grid = copy.deepcopy(grid)
+            new_grid.set_attacker_action(action)
             actions_history2 = copy.deepcopy(actions_history)
             actions_history2[ATTACKER].append(action.name)
             self.children[action.name] = SearchDefenderMoveGameState(
                 parent=self,
                 to_move=DEFENDER,
-                grid=grid.apply_attacker_action(action),
+                grid=new_grid,
                 actions_history=actions_history2,
                 rounds_left=rounds_left
             )
 
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
-        self._information_set = ".{0}".format(".".join(self.actions_history[ATTACKER]))
+        self._information_set = ".{0}.{1}".format(".".join(self.actions_history[ATTACKER]),
+                                                  str(grid.matrix[grid.locations[OCCUPANTS.ATTACKER]]))
 
-    def is_terminal(self):
-        return self.terminal
 
 
 class SearchDefenderMoveGameState(SearchGameStateBase):
@@ -67,17 +68,39 @@ class SearchDefenderMoveGameState(SearchGameStateBase):
         super().__init__(parent=parent, to_move=to_move, actions=[self.action_str(x) for x in actions],
                          grid=grid, actions_history=actions_history, rounds_left = rounds_left)
         for action in actions:
+            new_grid = copy.deepcopy(grid)
+            new_grid.set_defender_action(action[0],action[1])
             actions_history2 = copy.deepcopy(actions_history)
             actions_history2[DEFENDER].append(self.action_str(action))
-            self.children[self.action_str(action)] = SearchAttackerMoveGameState(
+            self.children[self.action_str(action)] = SearchGridMoveGameState(
                 parent=self,
-                to_move=ATTACKER,
-                grid=grid.apply_defender_action(action[0],action[1]),
+                to_move=GRID,
+                grid=new_grid,
                 actions_history=actions_history2,
                 rounds_left=rounds_left-1
             )
-        self._information_set = "..{0}".format(".".join(self.actions_history[DEFENDER]))
+        self._information_set = ".{0}.{1}.{2}".format(".".join(self.actions_history[DEFENDER]),
+                                                       str(grid.matrix[grid.locations[OCCUPANTS.P1]]),
+                                                       str(grid.matrix[grid.locations[OCCUPANTS.P2]]))
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
 
-    def is_terminal(self):
-        return False
+
+class SearchGridMoveGameState(SearchGameStateBase):
+
+    def __init__(self, parent, to_move, actions_history, grid:Grid, rounds_left):
+        super().__init__(parent=parent, to_move=to_move, actions=['GRID'],
+                         grid=grid, actions_history=actions_history, rounds_left = rounds_left)
+
+        actions_history2 = copy.deepcopy(actions_history)
+        self.children['GRID'] = SearchAttackerMoveGameState(
+            parent=self,
+            to_move=ATTACKER,
+            grid=grid.apply_actions(),
+            actions_history=actions_history2,
+            rounds_left=rounds_left-1
+        )
+        self._information_set = "GRID"
+        self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
+
+    def chance_prob(self):
+        return 1

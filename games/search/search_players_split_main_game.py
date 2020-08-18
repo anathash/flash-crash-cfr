@@ -11,7 +11,7 @@ from search.search_common_players import SearchGameStateBase, SearchAttackerMove
 
 class SearchMainGameRootChanceGameState(GameStateBase):
     def __init__(self, goal_probs, grid, rounds_left):
-        self._chance_prob = goal_probs
+        self._chance_prob = {str(x):y for x,y in goal_probs.items()}
         actions = goal_probs.keys()
         super().__init__(parent=None, to_move=CHANCE, actions = [str(x) for x in actions ])
         self.children = {
@@ -24,7 +24,6 @@ class SearchMainGameRootChanceGameState(GameStateBase):
         }
 
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
-
 
     def is_terminal(self):
         return False

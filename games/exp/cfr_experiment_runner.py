@@ -86,6 +86,7 @@ def write_results_file(stats_list, dirname):
         for row in stats_list:
             writer.writerow(row)
 
+
 def compute_cfr_ppa_equilibrium(action_mgr, network, defender_budget, attacker_budgets, iterations):
     network.limit_trade_step = True
     root = PPAFlashCrashRootChanceGameState(action_mgr=action_mgr, af_network=network, defender_budget=defender_budget,
@@ -107,6 +108,24 @@ def compute_cfr_ppa_equilibrium(action_mgr, network, defender_budget, attacker_b
     return {'defender':defender_eq, 'attackers':attackers_eq, 'regrets':regrets,
             'pos_regret': cumulative_pos_regret / iterations, 'sigma':sigma}
 
+
+def compute_complete_game_equilibrium(root,  attacker_budgets, iterations):
+    vanilla_cfr = VanillaCFR(root)
+    vanilla_cfr.run(iterations=iterations)
+    vanilla_cfr.compute_nash_equilibrium()
+    defender_eq =  vanilla_cfr.value_of_the_game()
+    attackers_eq = {}
+    regrets = {}
+    root =vanilla_cfr.root
+    sigma = {b: 0 for b in attacker_budgets}
+    for attacker in attacker_budgets:
+        attackers_eq[attacker] = root.children[str(attacker)].get_value()
+        regrets[attacker]  = vanilla_cfr.cumulative_regrets[root.children[str(attacker)].inf_set()]
+        inf_set = ".{0}".format(str(attacker))
+        sigma[attacker] = vanilla_cfr.sigma[inf_set]
+    cumulative_pos_regret = vanilla_cfr.total_positive_regret()
+    return {'defender':defender_eq, 'attackers':attackers_eq, 'regrets':regrets,
+            'pos_regret': cumulative_pos_regret / iterations, 'sigma':sigma}
 
 def run_minimax_experiments_for_defender_budget(actions_mgr, network, defender_budget,  alg, attacker_budgets):
     results = {0: {}, defender_budget:{}}

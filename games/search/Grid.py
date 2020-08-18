@@ -1,4 +1,5 @@
 import copy
+import sys
 from enum import Enum
 from itertools import product
 
@@ -14,6 +15,11 @@ from math import inf
 
 MAX_X = 4
 MAX_Y = 2
+
+# define Python user-defined exceptions
+class AgentLocationError(Exception):
+    """Base class for other exceptions"""
+    pass
 
 class OCCUPANTS(Enum):
     P1 = 1
@@ -52,6 +58,9 @@ class Node:
         self.tracks = tracks
         self.payoff = payoff
 
+    def __str__(self):
+        return ".{0}.{1}".format(str(self.occupants), str(self.tracks))
+
 INITAL_COSTS = {(4,0):3, (4,1):10, (4,2):5}
 
 INITIAL_GRID = {
@@ -71,41 +80,45 @@ INITIAL_GRID = {
 }
 
 class Grid:
-    def __init__(self, attacker_goal = None, matrix = INITIAL_GRID,
+    def __init__(self, rounds_left, attacker_goal = None, matrix = INITIAL_GRID,
                  costs = INITAL_COSTS,
                  attacker_location = (0,1),
                  p1_location = (1,1),
                  p2_location = (3,1)):
 
         self.attacker_goal = attacker_goal
-        self.locations = {}
+        self.locations = dict()
         self.locations[OCCUPANTS.ATTACKER] = attacker_location
         self.locations[OCCUPANTS.P1] = p1_location
         self.locations[OCCUPANTS.P2] = p2_location
         self.matrix = matrix
         self.costs = costs
+        self.rounds_left = rounds_left
+        self.round_actions= dict()
+        self.terminal = False
 
     def get_goal_costs(self):
         return self.costs
 
-
     def set_attacker_goal(self, goal):
         new_grid = copy.deepcopy(self)
         if goal[0] != MAX_X:
-            raise ValueError
+            raise AgentLocationError
         new_grid.attacker_goal = goal
         return new_grid
 
     def get_attacker_actions(self):
+        if self.terminal:
+            raise AgentLocationError
         (x,y) = (self.locations[OCCUPANTS.ATTACKER][0], self.locations[OCCUPANTS.ATTACKER][1])
         if not (x,y) in ATTACKER_TRANSITIONS:
-            return []
+            raise AgentLocationError
         return ATTACKER_TRANSITIONS[(x,y)]
 
     def get_patroller_actions(self, location):
         actions = []
-        if location[0] not in [1,3]:
-            raise ValueError
+        if self.terminal or location[0] not in [1,3]:
+            raise AgentLocationError
 
         if location[1] < MAX_Y:  # up
             #            actions.append((self.x_loc, self.y_loc + 1))
@@ -118,6 +131,9 @@ class Grid:
         return actions
 
     def get_defender_actions(self):
+        if self.terminal:
+            raise AgentLocationError
+
         p1_actions = self.get_patroller_actions(self.locations[OCCUPANTS.P1])
         p_2_actions = self.get_patroller_actions(self.locations[OCCUPANTS.P2])
         prod = product(p1_actions, p_2_actions)
@@ -166,13 +182,13 @@ class Grid:
         if self.attacker_reached_her_goal():
             x = self.locations[OCCUPANTS.ATTACKER][0]
             y = self.locations[OCCUPANTS.ATTACKER][1]
-            return self.matrix[(x,y)].payoff
+            return -1*self.matrix[(x,y)].payoff
 
         #reached a goal node not its own
         if self.attacker_reached_goal_nodes():
-            return -inf
+            return 1000
 
-        return -inf
+        return 1000
 
     def update_matrix(self, occupant, action, tracks = False):
         current_x = self.locations[occupant][0]
@@ -183,16 +199,6 @@ class Grid:
         self.matrix[(current_x, current_y)].occupants.remove(occupant)
         self.matrix[(new_x, new_y)].occupants.append(occupant)
         self.locations[occupant] = (new_x, new_y)
-
-    def apply_attacker_action(self, action):
-        new_grid = copy.deepcopy(self)
-        new_grid.__execute_attacker_action(action)
-        return new_grid
-
-    def apply_defender_action(self, p1_action, p2_action):
-        new_grid = copy.deepcopy(self)
-        new_grid.__execute_defender_action(p1_action, p2_action)
-        return new_grid
 
     def __execute_attacker_action(self, action):
         current_x = self.locations[OCCUPANTS.ATTACKER][0]
@@ -206,18 +212,41 @@ class Grid:
         self.update_matrix(OCCUPANTS.P1, p1_action)
         self.update_matrix(OCCUPANTS.P2, p2_action)
 
-    def get_attacks_in_budget_dict(self, attacker_budgets):
+    def get_attacks_in_budget_dict(self, attacker_budgets, to_str=True):
         attacks_in_budget_dict = {x: [] for x in attacker_budgets}
         for goal, cost in self.costs.items():
             for budget in attacker_budgets:
                 if budget >= cost:
-                    attacks_in_budget_dict[budget].append(goal)
+                    if to_str:
+                        attacks_in_budget_dict[budget].append(str(goal))
+                    else:
+                        attacks_in_budget_dict[budget].append(goal)
+
         return attacks_in_budget_dict
 
     def get_attacks_probabilities(self, attacker_budgets):
-        attacks_in_budget = self.get_attacks_in_budget_dict(attacker_budgets)
+        attacks_in_budget = self.get_attacks_in_budget_dict(attacker_budgets, False)
         probs = {x:0 for x in self.costs.keys()}
         for budget, attack_list in attacks_in_budget.items():
             for attack in attack_list:
                 probs[attack] += 1/(len(attacker_budgets)*len(attack_list))
         return probs
+
+    def set_attacker_action(self, action):
+        self.round_actions[OCCUPANTS.ATTACKER] = action
+
+    def set_defender_action(self, p1_action, p2_action):
+        self.round_actions[OCCUPANTS.P1] = p1_action
+        self.round_actions[OCCUPANTS.P2] = p2_action
+
+    def is_terminal(self):
+        return self.rounds_left == 0 or self.attacker_caught() or self.attacker_reached_goal_nodes()
+
+    def apply_actions(self):
+        new_grid = copy.deepcopy(self)
+        new_grid.__execute_defender_action(self.round_actions[OCCUPANTS.P1], self.round_actions[OCCUPANTS.P2])
+        new_grid.__execute_attacker_action(self.round_actions[OCCUPANTS.ATTACKER])
+        new_grid.rounds_left -= 1
+        new_grid.rounds_actions = {}
+        new_grid.terminal = new_grid.is_terminal()
+        return new_grid

@@ -11,7 +11,7 @@ from search.search_common_players import SearchAttackerMoveGameState, SearchGame
 
 class SearchCompleteGameRootChanceGameState(GameStateBase):
     def __init__(self, grid, attacker_budgets, rounds_left):
-        goals_in_budget_dict = grid.get_attacks_in_budget_dict(attacker_budgets)
+        goals_in_budget_dict = grid.get_attacks_in_budget_dict(attacker_budgets, False)
         super().__init__(parent=None, to_move=CHANCE, actions = [str(x) for x in attacker_budgets])
         self.children = {
             str(attacker_budget): SearchCompleteGameSelectorGameState(
@@ -25,7 +25,6 @@ class SearchCompleteGameRootChanceGameState(GameStateBase):
 
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
         self._chance_prob = 1./len(attacker_budgets)
-
 
     def is_terminal(self):
         return False
@@ -55,11 +54,11 @@ class SearchCompleteGameSelectorGameState(SearchGameStateBase):
             self.children[str(goal)]= SearchAttackerMoveGameState(
                 parent=self,  to_move=ATTACKER,
                 grid=grid.set_attacker_goal(goal),
-                actions_history={ATTACKER: ['b:' + str(attacker_budget), 'g:' + str(goal)], DEFENDER: []},
+                actions_history={ATTACKER: [ str(attacker_budget), 'g:' + str(goal)], DEFENDER: []},
                 rounds_left=rounds_left
             )
 
-        self._information_set = '.b:' + str(attacker_budget)
+        self._information_set = '.' + str(attacker_budget)
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
 
     def is_terminal(self):

@@ -256,11 +256,11 @@ def run_csv_exps():
     exp_params = {'defender_budget': 2000000000,
                   'attacker_budgets': [4000000000, 6000000000],
                   'main_game_iteration_portion': 0.8,
-                  'min_iterations': 1,
-                  'max_iterations': 202,
-                  'jump': 20,
+                  'min_iterations': 10,
+                  'max_iterations': 1000,
+                  'jump': 10,
                   'num_assets': 3,
-                  'step_order_size': SysConfig.get("STEP_ORDER_SIZE")*2,
+                  'step_order_size': SysConfig.get("STEP_ORDER_SIZE"),
                   'max_order_num': 1}
 
     with open(res_dir+'params.json', 'w') as fp:
@@ -272,7 +272,7 @@ def run_csv_exps():
                         min_iterations=exp_params['min_iterations'],
                         max_iterations=exp_params['max_iterations'],
                         jump=exp_params['jump'],
-                        num_assets= 4,
+                        num_assets= 3,
                         step_order_size=exp_params['step_order_size'],
                         max_order_num=exp_params['max_order_num'])
 

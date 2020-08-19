@@ -1,6 +1,6 @@
 import unittest
 from math import inf
-from search.Grid import Grid, Actions, OCCUPANTS, Node, AgentLocationError
+from search.Grid import Grid, Actions, OCCUPANTS, Node, AgentLocationError, MAX_VALUE
 
 
 class TestGrid  (unittest.TestCase):
@@ -136,32 +136,32 @@ class TestGrid  (unittest.TestCase):
 
     def test_get_games_values(self):
         grid = Grid(rounds_left=2)
-        self.assertEqual(grid.get_game_value(), -inf)
+        self.assertEqual(grid.get_game_value(), MAX_VALUE)
         grid.locations[OCCUPANTS.ATTACKER] = (1, 1)
         grid.locations[OCCUPANTS.P1] = (1, 1)
         grid.locations[OCCUPANTS.P2] = (2, 1)
         self.assertEqual(grid.get_game_value(), 0)
         grid.locations[OCCUPANTS.ATTACKER] = (4, 0)
         grid = grid.set_attacker_goal((4,0))
-        self.assertEqual(grid.get_game_value(), 3)
+        self.assertEqual(grid.get_game_value(), -3)
         grid = grid.set_attacker_goal((4, 1))
-        self.assertEqual(grid.get_game_value(), -inf)
+        self.assertEqual(grid.get_game_value(), MAX_VALUE)
         grid = grid.set_attacker_goal((4, 2))
-        self.assertEqual(grid.get_game_value(), -inf)
+        self.assertEqual(grid.get_game_value(), MAX_VALUE)
         grid.locations[OCCUPANTS.ATTACKER] = (4, 1)
         grid = grid.set_attacker_goal((4,0))
-        self.assertEqual(grid.get_game_value(), -inf)
+        self.assertEqual(grid.get_game_value(), MAX_VALUE)
         grid = grid.set_attacker_goal((4, 1))
-        self.assertEqual(grid.get_game_value(), 10)
+        self.assertEqual(grid.get_game_value(), -10)
         grid = grid.set_attacker_goal((4, 2))
-        self.assertEqual(grid.get_game_value(), -inf)
+        self.assertEqual(grid.get_game_value(), MAX_VALUE)
         grid.locations[OCCUPANTS.ATTACKER] = (4, 2)
         grid = grid.set_attacker_goal((4,0))
-        self.assertEqual(grid.get_game_value(), -inf)
+        self.assertEqual(grid.get_game_value(), MAX_VALUE)
         grid = grid.set_attacker_goal((4, 1))
-        self.assertEqual(grid.get_game_value(), -inf)
+        self.assertEqual(grid.get_game_value(), MAX_VALUE)
         grid = grid.set_attacker_goal((4, 2))
-        self.assertEqual(grid.get_game_value(), 5)
+        self.assertEqual(grid.get_game_value(), -5)
 
     def test_update_matrix(self):
         grid = Grid(rounds_left=2)
@@ -303,7 +303,9 @@ class TestGrid  (unittest.TestCase):
         grid = Grid(rounds_left=2)
         budgets = [4, 5, 11]
         expected_dict = {4:[(4,0)],5:[(4,0),(4,2)],11:[(4,0),(4,1), (4,2)]}
-        self.assertDictEqual(expected_dict, grid.get_attacks_in_budget_dict(budgets))
+        expected_dict_str = {4:['(4, 0)'],5:['(4, 0)','(4, 2)'],11:['(4, 0)','(4, 1)', '(4, 2)']}
+        self.assertDictEqual(expected_dict, grid.get_attacks_in_budget_dict(budgets, to_str = False))
+        self.assertDictEqual(expected_dict_str, grid.get_attacks_in_budget_dict(budgets))
 
     def test_get_attacks_probabilities(self):
         grid = Grid(rounds_left=2)

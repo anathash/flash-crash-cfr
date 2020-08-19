@@ -15,16 +15,20 @@ from math import inf
 
 MAX_X = 4
 MAX_Y = 2
+MAX_VALUE = 100
+
 
 # define Python user-defined exceptions
 class AgentLocationError(Exception):
     """Base class for other exceptions"""
     pass
 
+
 class OCCUPANTS(Enum):
     P1 = 1
     P2 = 2
     ATTACKER = 3
+
 
 class Actions(Enum):
     STAY = 0
@@ -35,21 +39,20 @@ class Actions(Enum):
     SOUTH_EAST = 5
 
 
-ATTACKER_TRANSITIONS = {(0,1):[Actions.NORTH_EAST, Actions.EAST, Actions.SOUTH_EAST],
-                        (1,0): [Actions.STAY, Actions.EAST],
-                        (1,1): [Actions.STAY, Actions.EAST],
-                        (1,2): [Actions.STAY, Actions.EAST],
-                        (2,0):[Actions.STAY, Actions.EAST, Actions.NORTH],
-                        (2,1):[Actions.STAY, Actions.EAST],
-                        (2,2):[Actions.STAY, Actions.EAST, Actions.SOUTH],
-                        (3,0):[Actions.STAY, Actions.EAST],
-                        (3,1):[Actions.STAY, Actions.EAST],
-                        (3,2):[Actions.STAY, Actions.EAST],
-}
+ATTACKER_TRANSITIONS = {(0, 1):[Actions.NORTH_EAST, Actions.EAST, Actions.SOUTH_EAST],
+                        (1, 0): [Actions.STAY, Actions.EAST],
+                        (1, 1): [Actions.STAY, Actions.EAST],
+                        (1, 2): [Actions.STAY, Actions.EAST],
+                        (2, 0):[Actions.STAY, Actions.EAST, Actions.NORTH],
+                        (2, 1):[Actions.STAY, Actions.EAST],
+                        (2, 2):[Actions.STAY, Actions.EAST, Actions.SOUTH],
+                        (3, 0):[Actions.STAY, Actions.EAST],
+                        (3, 1):[Actions.STAY, Actions.EAST],
+                        (3, 2):[Actions.STAY, Actions.EAST]}
 
-SUCCESFULL_ATTACK_PAYOFF = {(4,0):3,
-                            (4,1):10,
-                            (4,2):5}
+SUCCESFULL_ATTACK_PAYOFF = {(4, 0): 3,
+                            (4, 1): 10,
+                            (4, 2): 5}
 
 
 class Node:
@@ -59,9 +62,9 @@ class Node:
         self.payoff = payoff
 
     def __str__(self):
-        return ".{0}.{1}".format(str(self.occupants), str(self.tracks))
+        return "{0}_{1}".format(str([x.name for x in self.occupants]), str(self.tracks))
 
-INITAL_COSTS = {(4,0):3, (4,1):10, (4,2):5}
+INITAL_COSTS= {(4, 0):3, (4, 1):10,(4, 2):5}
 
 INITIAL_GRID = {
     (0,1): Node([OCCUPANTS.ATTACKER]),
@@ -186,14 +189,15 @@ class Grid:
 
         #reached a goal node not its own
         if self.attacker_reached_goal_nodes():
-            return 1000
+            return MAX_VALUE
 
-        return 1000
+        return MAX_VALUE
 
-    def update_matrix(self, occupant, action, tracks = False):
+    def update_matrix(self, occupant, action, tracks = None):
         current_x = self.locations[occupant][0]
         current_y = self.locations[occupant][1]
-        self.matrix[(current_x, current_y)].tracks = tracks
+        if tracks:
+            self.matrix[(current_x, current_y)].tracks = tracks
 
         new_x, new_y = self.get_new_location(current_x, current_y, action)
         self.matrix[(current_x, current_y)].occupants.remove(occupant)
@@ -201,12 +205,8 @@ class Grid:
         self.locations[occupant] = (new_x, new_y)
 
     def __execute_attacker_action(self, action):
-        current_x = self.locations[OCCUPANTS.ATTACKER][0]
-        current_y = self.locations[OCCUPANTS.ATTACKER][1]
-        if action == Actions.STAY:
-            self.matrix[(current_x, current_y)].tracks = False
-        else:
-            self.update_matrix(OCCUPANTS.ATTACKER, action, True)
+        tracks = not (action == Actions.STAY)
+        self.update_matrix(OCCUPANTS.ATTACKER, action, tracks)
 
     def __execute_defender_action(self, p1_action, p2_action):
         self.update_matrix(OCCUPANTS.P1, p1_action)
@@ -250,3 +250,12 @@ class Grid:
         new_grid.rounds_actions = {}
         new_grid.terminal = new_grid.is_terminal()
         return new_grid
+
+    def get_curr_locations_strs(self):
+        p1_loc = self.locations[OCCUPANTS.P1]
+        p2_loc = self.locations[OCCUPANTS.P2]
+        defender_curr_locations = str(((p1_loc, self.matrix[p1_loc].tracks),
+                                       (p2_loc, self.matrix[p2_loc].tracks)))
+        attacker_curr_location = str(self   .locations[OCCUPANTS.ATTACKER])
+
+        return defender_curr_locations, attacker_curr_location

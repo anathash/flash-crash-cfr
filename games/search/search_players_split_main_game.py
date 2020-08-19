@@ -14,11 +14,13 @@ class SearchMainGameRootChanceGameState(GameStateBase):
         self._chance_prob = {str(x):y for x,y in goal_probs.items()}
         actions = goal_probs.keys()
         super().__init__(parent=None, to_move=CHANCE, actions = [str(x) for x in actions ])
+        defender_curr_locations, attacker_curr_location = grid.get_curr_locations_strs()
         self.children = {
             str(attacker_goal): SearchAttackerMoveGameState(
                 parent=self, to_move=ATTACKER,
                 grid = grid.set_attacker_goal(attacker_goal),
-                actions_history={ATTACKER:['g:' + str(attacker_goal)],DEFENDER:[]},
+                location_history={ATTACKER: ['g:' + str(attacker_goal), attacker_curr_location],
+                                  DEFENDER: [defender_curr_locations]},
                 rounds_left = rounds_left
             ) for attacker_goal in actions
         }

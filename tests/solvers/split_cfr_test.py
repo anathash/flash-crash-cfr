@@ -14,7 +14,7 @@ from split_game_cfr import SplitGameCFR
 class TestSplitCFR(unittest.TestCase):
 
     def get_flash_crash_split_cfr_eq(self, defender_budget, attacker_budgets, network, step_order_size,
-                             max_order_num, iterations1, iterations2):
+                             max_order_num, iterations1, iterations2, game_2_pure=False):
         network.limit_trade_step = True
         # assets, step_order_size, max_order_num=1, attacker_budgets
         cfr_actions_mgr = ActionsManager(assets=network.assets, step_order_size=step_order_size,
@@ -30,7 +30,8 @@ class TestSplitCFR(unittest.TestCase):
                            game1_iterations=iterations1,
                            game2_iterations=iterations2,
                            attacks_in_budget_dict=cfr_actions_mgr.get_portfolios_in_budget_dict(),
-                           subgame_keys = cfr_actions_mgr.get_portfolios().keys())
+                           subgame_keys = cfr_actions_mgr.get_portfolios().keys(),
+                           game_2_pure = game_2_pure)
 
         return run_results
 

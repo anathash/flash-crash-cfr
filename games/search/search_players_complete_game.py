@@ -12,14 +12,16 @@ from search.search_common_players import SearchAttackerMoveGameState, SearchGame
 class SearchCompleteGameRootChanceGameState(GameStateBase):
     def __init__(self, grid, attacker_budgets, rounds_left):
         goals_in_budget_dict = grid.get_attacks_in_budget_dict(attacker_budgets, False)
-        super().__init__(parent=None, to_move=CHANCE, actions = [str(x) for x in attacker_budgets])
+        super().__init__(parent=None, to_move=CHANCE, actions= [str(x) for x in attacker_budgets])
+
         self.children = {
             str(attacker_budget): SearchCompleteGameSelectorGameState(
                 parent=self,  to_move=ATTACKER,
                 grid=grid, attacker_budget=attacker_budget,
                 rounds_left=rounds_left,
                 goals_in_budget=goals_in_budget_dict[attacker_budget],
-                actions_history={ATTACKER: ['b:' + str(attacker_budget)], DEFENDER: []},
+                location_history={ATTACKER: [str(attacker_budget)],
+                                  DEFENDER: []},
             ) for attacker_budget in attacker_budgets
         }
 
@@ -43,18 +45,21 @@ class SearchCompleteGameRootChanceGameState(GameStateBase):
 
 
 class SearchCompleteGameSelectorGameState(SearchGameStateBase):
-    def __init__(self, parent, to_move, grid,  attacker_budget, rounds_left, goals_in_budget, actions_history):
+    def __init__(self, parent, to_move, grid,  attacker_budget, rounds_left, goals_in_budget, location_history):
 
         actions = [str(g) for g in goals_in_budget]
         super().__init__(parent=parent, to_move=to_move, actions=actions,
-                         grid=grid, actions_history=actions_history, rounds_left=rounds_left, terminal=False)
+                         grid=grid, location_history=location_history, rounds_left=rounds_left, terminal=False)
+        defender_curr_locations, attacker_curr_location = grid.get_curr_locations_strs()
         for goal in goals_in_budget:
-            actions_history2 = copy.deepcopy(actions_history)
-            actions_history2[ATTACKER].append('g:' + str(goal))
-            self.children[str(goal)]= SearchAttackerMoveGameState(
+            location_history2 = copy.deepcopy(location_history)
+            location_history2[ATTACKER].append('g:' + str(goal))
+            location_history2[ATTACKER].append(attacker_curr_location)
+            location_history2[DEFENDER].append(defender_curr_locations)
+            self.children[str(goal)] = SearchAttackerMoveGameState(
                 parent=self,  to_move=ATTACKER,
                 grid=grid.set_attacker_goal(goal),
-                actions_history={ATTACKER: [ str(attacker_budget), 'g:' + str(goal)], DEFENDER: []},
+                location_history=location_history2,
                 rounds_left=rounds_left
             )
 

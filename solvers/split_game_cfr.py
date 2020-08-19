@@ -25,7 +25,7 @@ class SplitGameCFR:
     def compute_game_mixed_equilibrium(self, attacker_types, subgame_utilities, iterations, attacks_in_budget_dict):
         p_selector_root = SelectorRootChanceGameState(attacker_types, subgame_utilities, attacks_in_budget_dict)
         cfr = VanillaCFR(p_selector_root)
-        cfr.run(iterations=1)
+        cfr.run(iterations=iterations)
         cfr.compute_nash_equilibrium()
         pids = subgame_utilities.keys()
         nash_eq = {pid:0 for pid in pids}
@@ -123,11 +123,18 @@ class SplitGameCFR:
         return (main_game_results, selector_game_result)
 
     def run(self, main_game_root, attacker_types, game1_iterations,
-            game2_iterations, attacks_in_budget_dict, subgame_keys):
+            game2_iterations, attacks_in_budget_dict, subgame_keys, game_2_pure):
         main_game_results = self.compute_main_game_utilities(main_game_root, subgame_keys, game1_iterations)
-        selector_game_result = self.compute_pure_game_equilibrium(attacker_types=attacker_types,
-                                                             subgame_utilities=main_game_results['utilities'],
-                                                             attacks_in_budget_dict=attacks_in_budget_dict)
+        if game_2_pure:
+            selector_game_result = self.compute_pure_game_equilibrium(attacker_types=attacker_types,
+                                                                 subgame_utilities=main_game_results['utilities'],
+                                                                 attacks_in_budget_dict=attacks_in_budget_dict)
+        else:
+            selector_game_result = self.compute_game_mixed_equilibrium(attacker_types=attacker_types,
+                                                                 subgame_utilities=main_game_results['utilities'],
+                                                                 iterations=game2_iterations,
+                                                                 attacks_in_budget_dict=attacks_in_budget_dict)
+
         return (main_game_results, selector_game_result)
 
 def main():

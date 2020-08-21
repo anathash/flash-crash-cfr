@@ -1,7 +1,7 @@
 import unittest
 from math import inf
 
-from constants import CHANCE, ATTACKER, DEFENDER
+from constants import CHANCE, ATTACKER, DEFENDER, GRID
 from search.Grid import Grid, Actions, MAX_VALUE
 from search.search_common_players import SearchAttackerMoveGameState, SearchDefenderMoveGameState, \
     SearchGridMoveGameState
@@ -129,6 +129,25 @@ class TestSearchCompleteGame  (unittest.TestCase):
         self.assertEqual(node.children, {})
         self.assertEqual(node.inf_set(), '.4.g:(4, 0).(0, 1).(1, 2).True')
         self.assertEqual(node.evaluation(), 0)
+
+    def test_grid_node(self):
+        root = self.setup_tree(1)
+        parent = root.children['4'].children['(4, 0)'].children['NORTH_EAST']
+        node = parent.children['(NORTH, NORTH)']
+
+        self.assertFalse(node.is_terminal())
+        self.assertFalse(node.terminal)
+        self.assertEqual(node.tree_size, 2)
+        self.assertEqual(node.parent, parent)
+        self.assertEqual(node.to_move, GRID)
+        self.assertEqual(node.rounds_left, 1)
+        self.assertEqual(node.location_history, {ATTACKER: ['4', 'g:(4, 0)', '(0, 1)'],
+                                                 DEFENDER: ['(((1, 1), False), ((3, 1), False))']})
+
+        self.assertEqual(node.actions, ['GRID'])
+        self.assertEqual(node.inf_set(), 'GRID')
+        for child in node.children.values():
+            self.assertTrue(isinstance(child, SearchAttackerMoveGameState))
 
     def test_terminal_attacker_caught_in_mid_game(self):
         root = self.setup_tree(2)

@@ -42,7 +42,6 @@ class RootGenerator:
         raise NotImplementedError
 
 
-
 class FlashCrashRootGenerator(RootGenerator):
 
     def __init__(self,exp_params):

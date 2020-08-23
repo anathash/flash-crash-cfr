@@ -20,7 +20,7 @@ def count_split_game_nodes(params, root_generator):
     dummy_utilities = {pid: 0 for pid in root_generator.get_attack_keys()}
     p_selector_root = SelectorRootChanceGameState(params['attacker_budgets'], dummy_utilities,
                                                   root_generator.get_attack_costs())
-    return root_generator.get_split_game_root().tree_size + p_selector_root.tree_size
+    return root_generator.split_root.tree_size + p_selector_root.tree_size
 
 
 
@@ -32,7 +32,7 @@ def count_game_nodes_csv(root_generator, res_dir,  game_size_range, params, game
         print(str(datetime.now()) + ': split')
         split = count_split_game_nodes(params, root_generator)
         print(str(datetime.now()) + ': complete')
-        vanilla = root_generator.get_complete_game_root().tree_size
+        vanilla = root_generator.complete_root.tree_size
 
         results.append({game_size_fields_name: str(i), 'vanilla_cfr': vanilla, 'split_cfr': split})
 
@@ -61,15 +61,11 @@ def count_flash_crash_game_nodes():
     res_dir = setup_dir('flash_crash')
     exp_params = {'defender_budget': 2000000000,
                   'attacker_budgets': [4000000000, 6000000000],
-                  'main_game_iteration_portion': 0.8,
-                  'min_iterations': 1,
-                  'max_iterations': 202,
-                  'jump': 20,
                   'step_order_size': SysConfig.get("STEP_ORDER_SIZE"),
                   'max_order_num': 1}
 
     root_generator = FlashCrashRootGenerator(exp_params)
-    count_game_nodes_csv(root_generator=root_generator, res_dir=res_dir,game_size_range = range(2,5), params=exp_params,
+    count_game_nodes_csv(root_generator=root_generator, res_dir=res_dir,game_size_range = range(3,6), params=exp_params,
                          game_name='flash_crash',
                          game_size_fields_name ='num_assets')
 
@@ -86,6 +82,7 @@ def count_search_game_nodes():
 
 if __name__ == "__main__":
     count_flash_crash_game_nodes()
+    #count_search_game_nodes()
 
 
 

@@ -1,0 +1,1 @@
+{"main_game_iteration_portion": 1.0, "min_iterations": 100, "max_iterations": 1001, "game_size_range": [3], "jump": 100, "defender_budget": 2000000000, "attacker_budgets": [4000000000, 6000000000, 8000000000], "step_order_size": 0.015, "max_order_num": 1}

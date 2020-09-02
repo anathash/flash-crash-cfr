@@ -1,0 +1,1 @@
+{"main_game_iteration_portion": 1.0, "min_iterations": 100, "max_iterations": 10001, "game_size_range": [5], "jump": 1000, "attacker_budgets": [4, 5, 11]}

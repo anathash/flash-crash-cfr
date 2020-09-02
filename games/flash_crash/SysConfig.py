@@ -8,7 +8,7 @@ class SysConfig:
               "STEP_ORDER_SIZE": 0.0075,
               "MAX_NUM_ORDERS": 2,
               "TIME_STEP_MINUTES": 5,
-              "DAILY_PORTION_PER_MIN": 0.05, # finish a 1.5% order in 15 minutes
+              "DAILY_PORTION_PER_MIN": 0.001, # finish a 1.5% order in 15 minutes
              # "DAILY_PORTION_PER_MIN": 0.001, # finish a 1.5% order in 15 minutes
     }
 

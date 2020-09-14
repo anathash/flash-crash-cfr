@@ -1,7 +1,7 @@
 import copy
 
 from ActionsManager import ActionsManager
-from exp.network_generators import gen_new_network
+from exp.network_generators import gen_new_network, get_network_from_dir
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
 from flash_crash_players_portfolio_per_attacker_cfr import PPAFlashCrashRootChanceGameState
 from search.Grid import Grid
@@ -27,7 +27,6 @@ class RootGenerator:
         return self.split_actions_mgr.get_probable_portfolios().keys()
     #    return self.split_actions_mgr.get_portfolios_prob().keys()
 
-
     def gen_roots(self, game_size):
         self.complete_actions_mgr = None
         self.complete_root = None
@@ -48,7 +47,16 @@ class FlashCrashRootGenerator(RootGenerator):
         super().__init__(exp_params)
 
     def _gen_roots(self, game_size):
-        dirname, network = gen_new_network(game_size)
+        if game_size == 4:
+            dirname = '../../results/networks/Fri_Sep_11_10_00_15_2020/' #4X4
+            network = get_network_from_dir(dirname)
+
+        if game_size == 3:
+            dirname = '../../results/networks/Fri_Sep_11_09_33_08_2020/' #3X3
+            #dirname = '../../results/three_assets_net/'
+            network = get_network_from_dir(dirname)
+
+#        dirname, network = gen_new_network(game_size)
         self._gen_complete_game_root(network)
         self._gen_split_main_game_root(network)
 
@@ -79,7 +87,6 @@ class FlashCrashRootGenerator(RootGenerator):
 
     def get_attack_costs(self):
         return self.split_actions_mgr.get_portfolios_in_budget_dict()
-
 
 
 class SearchRootGenerator(RootGenerator):

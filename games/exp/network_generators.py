@@ -6,15 +6,15 @@ from MarketImpactCalculator import ExponentialMarketImpactCalculator
 
 def gen_network_uniform_funds(game_config, num_assets, assets_file, dir_name):
     config = GameConfig()
-    config.num_assets = 10
-    config.num_funds = 10
+#    config.num_assets = 10
+ #   config.num_funds = 4
     config.initial_fund_capital = 1000000
     initial_capitals = [game_config.initial_fund_capital] * game_config.num_funds
     initial_leverages = [game_config.initial_leverage] * game_config.num_funds
     tolerances = [game_config.tolerance] * game_config.num_funds
 
     network = AssetFundsNetwork.generate_random_funds_network(density = game_config.density,
-                                                              num_funds=game_config.num_funds,
+                                                              num_funds=num_assets,
                                                               initial_capitals= initial_capitals,
                                                               initial_leverages=initial_leverages,
                                                               tolerances=tolerances,
@@ -67,7 +67,7 @@ def get_network_from_dir(dirname):
     return AssetFundsNetwork.load_from_file(dirname+'/network.json', ExponentialMarketImpactCalculator(config.impact_calc_constant))
 
 
-def gen_new_network(num_assets = 10, uniform = True, results_dir = '../../results/'):
+def gen_new_network(num_assets, uniform = True, results_dir = '../../results/networks/'):
     now = time.ctime()
     dirname = results_dir + now.replace(":", "_").replace(" ", "_") + '/'
     if not os.path.exists(dirname):

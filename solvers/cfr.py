@@ -1,3 +1,5 @@
+import datetime
+
 from constants import ATTACKER, DEFENDER
 from utils import init_sigma, init_empty_node_maps, init_empty_node
 
@@ -144,6 +146,21 @@ class VanillaCFR(CounterfactualRegretMinimizationBase):
 
     def __init__(self, root):
         super().__init__(root = root, chance_sampling = False)
+
+    def run_with_time_limit(self, time_limit):
+        time_elapsed = 0
+        start = datetime.now()
+        iteration = 1
+        while time_elapsed <= time_limit:
+            print('iteration ' + str(iteration))
+            u = self._cfr_utility_recursive(self.root, 1, 1)
+            # since we do not update sigmas in each information set while traversing, we need to
+            # traverse the tree to perform to update it now
+            self.__update_sigma_recursively(self.root)
+            iteration += 1
+            time_elapsed = (datetime.now() - start).seconds
+        self.iterations = iteration
+        return iteration
 
     def run(self, round = 0, iterations = 1):
         self.iterations = iterations

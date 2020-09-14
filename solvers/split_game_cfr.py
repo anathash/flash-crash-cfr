@@ -1,3 +1,4 @@
+import datetime
 from math import inf
 
 from SysConfig import SysConfig
@@ -10,16 +11,19 @@ from split_selector_game import SelectorRootChanceGameState
 
 class SplitGameCFR:
 
-    def compute_main_game_utilities(self, root, sub_game_keys, iterations):
+    def compute_main_game_utilities(self, root, sub_game_keys, iterations, time=None):
         vanilla_cfr = VanillaCFR(root)
-        vanilla_cfr.run(iterations=iterations)
+        if time:
+            vanilla_cfr.run_with_time_limit(time)
+        else:
+            vanilla_cfr.run(iterations=iterations)
         vanilla_cfr.compute_nash_equilibrium()
         # generate portfolio utility table
         vanilla_cfr.value_of_the_game()
         utilities = {pid: root.children[pid].get_value() for pid in sub_game_keys}
         cumulative_pos_regret = vanilla_cfr.average_total_imm_regret(iterations)
-        return {'utilities':utilities,'pos_regret': cumulative_pos_regret, 'exploitability': 2* cumulative_pos_regret}
-
+        return {'utilities':utilities,'pos_regret': cumulative_pos_regret, 'exploitability': 2* cumulative_pos_regret,
+                'cfr':vanilla_cfr, 'iterations':iterations}
 
 
     def compute_game_mixed_equilibrium(self, attacker_types, subgame_utilities, iterations, attacks_in_budget_dict):
@@ -89,7 +93,8 @@ class SplitGameCFR:
         cumulative_pos_regret = cfr.average_total_imm_regret(iterations)
         return {'pos_regret': cumulative_pos_regret, 'exploitability': 2* cumulative_pos_regret,
                   'defender':defender_eq, 'attackers':attackers_eq,
-                  'portfolios_dist':nash_eq, 'sigma':sigma}
+                  'portfolios_dist':nash_eq, 'sigma':sigma,'root':p_selector_root,'cfr':cfr
+                }
 
     def iterate(self, network, defender_budget, game1_iterations, game2_iterations, max_iterations, regret_epsilon):
         network.limit_trade_step = True
@@ -136,6 +141,18 @@ class SplitGameCFR:
                                                                  attacks_in_budget_dict=attacks_in_budget_dict)
 
         return (main_game_results, selector_game_result)
+
+    def run_with_time_limit(self, time_limit, main_game_root, attacker_types,
+             attacks_in_budget_dict, subgame_keys):
+        main_game_results = self.compute_main_game_utilities(root=main_game_root, sub_game_keys=subgame_keys,
+                                                             iterations=None, time_limit=time_limit -1)
+        t = datetime.now()
+        selector_game_result = self.compute_pure_game_equilibrium(attacker_types=attacker_types,
+                                                                  subgame_utilities=main_game_results['utilities'],
+                                                                  attacks_in_budget_dict=attacks_in_budget_dict)
+        print(str((datetime.now() - t).miliseconds))
+        return (main_game_results, selector_game_result)
+
 
 def main():
     defender_budget = 100000000

@@ -2,12 +2,7 @@ import unittest
 
 import numpy
 
-from SysConfig import SysConfig
-from exp.cfr_experiment_runner import compute_cfr_equilibrium, compute_cfr_ppa_equilibrium, \
-     compute_complete_game_equilibrium
-from exp.network_generators import get_network_from_dir
-from ActionsManager import ActionsManager
-from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
+from exp.archive.cfr_experiment_runner import compute_complete_game_equilibrium
 from search.Grid import Grid
 from search.search_players_complete_game import SearchCompleteGameRootChanceGameState
 from search.search_players_split_main_game import SearchMainGameRootChanceGameState

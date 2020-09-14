@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 from SysConfig import SysConfig
-from exp.cfr_experiment_runner import compute_cfr_equilibrium, compute_complete_game_equilibrium
+from exp.archive.cfr_experiment_runner import compute_cfr_equilibrium, compute_complete_game_equilibrium
 from exp.network_generators import get_network_from_dir
 from ActionsManager import ActionsManager
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState

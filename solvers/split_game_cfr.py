@@ -60,14 +60,18 @@ class SplitGameCFR:
         cfr = VanillaCFR(p_selector_root)
         for attacker in attacker_types:
             min_utility = inf
-            choice = None
+            choices = []
             for action in cfr.sigma['.'+str(attacker)].keys():
                 if subgame_utilities[action] < min_utility:
+                    choices = []
                     min_utility = subgame_utilities[action]
-                    choice = action
+                    choices.append(action)
+                elif min_utility == subgame_utilities[action]:
+                    choices.append(action)
+            num_choices = len(choices)
             for action in cfr.sigma['.'+str(attacker)].keys():
-                if action == choice:
-                    cfr.sigma['.' + str(attacker)][action] = 1
+                if subgame_utilities[action] == min_utility:
+                    cfr.sigma['.' + str(attacker)][action] = 1/num_choices
                 else:
                     cfr.sigma['.' + str(attacker)][action] = 0
 

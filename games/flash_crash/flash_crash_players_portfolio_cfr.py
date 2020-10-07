@@ -55,6 +55,9 @@ class PortfolioFlashCrashRootChanceGameState(GameStateBase):
 
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
 
+    def update_chance_probs(self, new_probs):
+        self._chance_prob = new_probs
+
     def is_terminal(self):
         return False
 
@@ -110,7 +113,8 @@ class PortfolioMarketMoveGameState(PortfolioFlashCrashGameStateBase):
 class PortfolioAttackerMoveGameState(PortfolioFlashCrashGameStateBase):
     def __init__(self, parent, actions_manager, to_move, players_info, af_network, actions_history):
         actions = actions_manager.get_possible_attacks_from_portfolio(players_info.attacker_attack, af_network.no_more_sell_orders())
-        self.terminal = not actions
+        if not actions:
+            actions = [{'action_subset': [], 'remaining_orders': []}]
 
         super().__init__(parent=parent,  to_move=to_move, actions = [str(x['action_subset']) for x in actions ],
                           af_network=af_network, players_info=players_info, actions_history=actions_history)
@@ -134,7 +138,7 @@ class PortfolioAttackerMoveGameState(PortfolioFlashCrashGameStateBase):
         self._information_set = ".{0}.{1}".format(players_info.attacker_pid, 'A_HISTORY:' + str(actions_history[SELL]))
 
     def is_terminal(self):
-        return self.terminal
+        return False
 
 
 class PortfolioDefenderMoveGameState(PortfolioFlashCrashGameStateBase):

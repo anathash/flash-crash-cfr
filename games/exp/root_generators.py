@@ -57,33 +57,27 @@ class FlashCrashRootGenerator(RootGenerator):
             network = get_network_from_dir(dirname)
 
 #        dirname, network = gen_new_network(game_size)
+        self.split_actions_mgr = ActionsManager(assets=network.assets,
+                                     step_order_size=self.params['step_order_size'],
+                                     max_order_num=self.params['max_order_num'],
+                                     attacker_budgets=self.params['attacker_budgets'])
         self._gen_complete_game_root(network)
         self._gen_split_main_game_root(network)
 
     def _gen_complete_game_root(self, network):
-        self.complete_actions_mgr = ActionsManager(assets=network.assets,
-                                     step_order_size=self.params['step_order_size'],
-                                     max_order_num=self.params['max_order_num'],
-                                     attacker_budgets=self.params['attacker_budgets'])
-
-        self.complete_root = PPAFlashCrashRootChanceGameState(action_mgr=self.complete_actions_mgr , af_network=network,
+        self.complete_root = PPAFlashCrashRootChanceGameState(action_mgr=self.split_actions_mgr , af_network=network,
                                                 defender_budget=self.params['defender_budget'],
                                                 attacker_budgets=self.params['attacker_budgets'])
 
     def _gen_split_main_game_root(self, network):
-        self.split_actions_mgr = ActionsManager(assets=network.assets,
-                                                step_order_size=self.params['step_order_size'],
-                                                max_order_num=self.params['max_order_num'],
-                                                attacker_budgets=self.params['attacker_budgets'])
-
         self.split_root = PortfolioFlashCrashRootChanceGameState(action_mgr=self.split_actions_mgr, af_network=network,
                                                                  defender_budget=self.params['defender_budget'])
 
-    def get_complete_game_action_mgr(self):
-        return self.complete_actions_mgr
+  #  def get_complete_game_action_mgr(self):
+  #      return self.complete_actions_mgr
 
-    def get_split_game_action_mgr(self):
-        return self.split_actions_mgr
+#    def get_split_game_action_mgr(self):
+#        return self.split_actions_mgr
 
     def get_attack_costs(self):
         return self.split_actions_mgr.get_portfolios_in_budget_dict()

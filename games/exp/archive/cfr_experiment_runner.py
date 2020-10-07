@@ -120,12 +120,12 @@ def compute_complete_game_equilibrium(root,  attacker_budgets, iterations):
     sigma = {b: 0 for b in attacker_budgets}
     for attacker in attacker_budgets:
         attackers_eq[attacker] = root.children[str(attacker)].get_value()
-        regrets[attacker]  = vanilla_cfr.cumulative_regrets[root.children[str(attacker)].inf_set()]
+        regrets[attacker] = vanilla_cfr.cumulative_regrets[root.children[str(attacker)].inf_set()]
         inf_set = ".{0}".format(str(attacker))
         sigma[attacker] = vanilla_cfr.sigma[inf_set]
     cumulative_pos_regret = vanilla_cfr.total_positive_regret()
     return {'defender':defender_eq, 'attackers':attackers_eq, 'regrets':regrets,
-            'pos_regret': cumulative_pos_regret / iterations, 'sigma':sigma}
+            'pos_regret': cumulative_pos_regret / iterations, 'sigma':sigma, 'cfr':vanilla_cfr}
 
 def run_minimax_experiments_for_defender_budget(actions_mgr, network, defender_budget,  alg, attacker_budgets):
     results = {0: {}, defender_budget:{}}

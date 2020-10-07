@@ -27,6 +27,9 @@ class SearchMainGameRootChanceGameState(GameStateBase):
 
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
 
+    def update_chance_probs(self, new_probs):
+        self._chance_prob = {str(x):y for x,y in new_probs.items()}
+
     def is_terminal(self):
         return False
 

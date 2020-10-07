@@ -36,18 +36,10 @@ class CounterfactualRegretMinimizationBase:
 
                 self.nash_equilibrium[i] = {a: chance_probs for a in node.actions}
         else:
-            if isinstance(list(self.cumulative_sigma[i].values())[0], dict):
-                keys = list(self.cumulative_sigma[i].values())[0].keys()
-                sigmas = {k: [self.cumulative_sigma[i][a][k] for a in self.cumulative_sigma[i].keys()] for k in keys}
-                sigma_sums = {k: sum(sigmas[k]) for k in keys}
-                self.nash_equilibrium[i] = {k:{a: self.cumulative_sigma[i][a][k] / sigma_sums[k] for a in node.actions} for k in keys}
-            else:
-                sigma_sum = sum(self.cumulative_sigma[i].values())
-                if (sigma_sum == 0):
-                    print(i)
-
-                self.nash_equilibrium[i] = {a: self.cumulative_sigma[i][a] / sigma_sum for a in node.actions}
-
+            sigma_sum = sum(self.cumulative_sigma[i].values())
+            if(sigma_sum == 0):
+                print(i)
+            self.nash_equilibrium[i] = {a: self.cumulative_sigma[i][a] / sigma_sum for a in node.actions}
            # self.nash_equilibrium[i] = {a: self.cumulative_sigma[i][a] / self.cumulative_reach[i] for a in node.actions}
         # go to subtrees
         for k in node.children:
@@ -73,20 +65,6 @@ class CounterfactualRegretMinimizationBase:
 #        y = sum(self.cumulative_sigma[".{'AAPL': 240.0149968, 'AMZN': 1860.105825, 'BABA': 185.7262497, 'FB': 190.2608338, 'GOOGL': 1236.770854, 'JNJ': 135.4142235463039, 'MSFT': 145.6558325, 'PG': 116.5833341, 'V': 177.5908353, 'WMT': 112.14958601110506}.SELL:[['[Sell JNJ 1208076]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[Sell WMT 979217]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]'], ['[]']]"].values())
 #        print(y)
 
-    def _cumulate_attacker_split_sigma(self, information_set, action, prob, prefixes):
-        if prob < 0:
-            print(str(information_set))
-            print(str(action))
-        val_sum = sum(prefixes.values())
-        if  val_sum:
-            prob /= val_sum
-
-        total_probs =  {x:y*prob for x,y in prefixes.items()}
-        cum_sigma = self.cumulative_sigma[information_set][action]
-        if cum_sigma == 0:
-            cum_sigma = {x:0 for x in prefixes.keys()}
-        self.cumulative_sigma[information_set][action] = {x:cum_sigma[x]+total_probs[x] for x in prefixes.keys()}
-
     def average_total_imm_regret(self, iterations):
         return sum(self.cumulative_immediate_pos_regret.values())/iterations
 
@@ -103,12 +81,19 @@ class CounterfactualRegretMinimizationBase:
     def value_of_the_game(self):
         return self.__value_of_the_game_state_recursive(self.root)
 
-    def _cfr_utility_recursive(self, state, reach_attacker, reach_defender, probs_prefix = None):
+    def _cfr_utility_recursive(self, state, reach_attacker, reach_defender):
         children_states_utilities = {}
+    #    if state.inf_set() == '.(((1, 1), False), ((3, 1), False)).(((1, 0), False), ((3, 2), False)).(((1, 1), False), ((3, 1), False))':
+    #        print("reach_attacker=" + str(reach_attacker))
+    #        print("reach_defender=" + str(reach_defender))
+   #     if '.2000000000.D_HISTORY' in state.inf_set() and '238.8298582629332' in state.inf_set():
+   #         print(type(state))
+   #         print(state.inf_set())
         if state.is_terminal():
             # evaluate terminal node according to the game result
             val = state.evaluation()
             return val
+            #return state.evaluation()
         if state.is_chance():
             if self.chance_sampling:
                 # if node is a chance node, lets sample one child node and proceed normally
@@ -117,16 +102,19 @@ class CounterfactualRegretMinimizationBase:
                 chance_probs = state.chance_prob()
 
                 if isinstance(chance_probs, dict):
-                    utilities = {action: self._cfr_utility_recursive(state.play(action), chance_probs[action], reach_defender, probs_prefix[action])
+                    utilities = {action: self._cfr_utility_recursive(state.play(action), chance_probs[action], reach_defender)
                                  for action in state.actions}
                     return utilities
+                    #return sum([chance_probs[action] *utilities[action] for action in state.actions])
                 else:
                     utilities = {action: self._cfr_utility_recursive(state.play(action), chance_probs,
                                                                      reach_defender) for action in state.actions}
                     return utilities
+#                    chance_outcomes = {state.play(action) for action in state.actions}
+#                    return chance_probs * sum([self._cfr_utility_recursive(outcome, reach_attacker, reach_defender) for outcome in chance_outcomes])
 
         if state.is_market():
-            return self._cfr_utility_recursive(state.play(state.actions[0]), reach_attacker, reach_defender, probs_prefix)
+            return self._cfr_utility_recursive(state.play(state.actions[0]), reach_attacker, reach_defender)
 
         # sum up all utilities for playing actions in our game state
         value = 0.
@@ -135,7 +123,7 @@ class CounterfactualRegretMinimizationBase:
             child_reach_attacker = reach_attacker * (self.sigma[state.inf_set()][action] if state.to_move == ATTACKER else 1)
             child_reach_defender = reach_defender * (self.sigma[state.inf_set()][action] if state.to_move == DEFENDER else 1)
             # value as if child state implied by chosen action was a game tree root
-            child_state_utility = self._cfr_utility_recursive(state.play(action), child_reach_attacker, child_reach_defender, probs_prefix)
+            child_state_utility = self._cfr_utility_recursive(state.play(action), child_reach_attacker, child_reach_defender)
             # value computation for current node
             value +=  self.sigma[state.inf_set()][action] * child_state_utility
             # values for chosen actions (child nodes) are kept here
@@ -152,10 +140,7 @@ class CounterfactualRegretMinimizationBase:
             action_cfr_regret = state.to_move * cfr_reach * (children_states_utilities[action] - value)
             max_pos_regret = max(max_pos_regret, action_cfr_regret)
             self._cumulate_cfr_regret(state.inf_set(), action, action_cfr_regret)
-            if probs_prefix and  state.to_move == ATTACKER:
-                self._cumulate_attacker_split_sigma(state.inf_set(), action, reach * self.sigma[state.inf_set()][action], probs_prefix)
-            else:
-                self._cumulate_sigma(state.inf_set(), action, reach * self.sigma[state.inf_set()][action])
+            self._cumulate_sigma(state.inf_set(), action, reach * self.sigma[state.inf_set()][action])
         self._cumulate_imm_pos_regret(state.inf_set(), max_pos_regret)
         self._cumulate_reach(state.inf_set(), reach)
         if self.chance_sampling:
@@ -174,37 +159,6 @@ class CounterfactualRegretMinimizationBase:
             value +=  self.nash_equilibrium[node.inf_set()][action] * self.__value_of_the_game_state_recursive(node.play(action))
         node.set_value(value)
         return value
-
-    def attackers_cfr_utilities(self):
-        values = {}
-        for attack in self.root.actions:
-            values[attack] = self.__attackers_cfr_utilities_rec(self.root.play(attack))
-        return values
-
-    def __attackers_cfr_utilities_rec(self, node):
-        value = 0
-        if node.is_terminal():
-            return node.evaluation()
-        for action in node.actions:
-            sigma = self.sigma[node.inf_set()][action]
-            value += sigma*self.__attackers_cfr_utilities_rec(node.play(action))
-        return value
-
-    def __attackers_utilities_rec(self, node, attacker_types):
-        values = {x: 0 for x in attacker_types}
-        if node.is_terminal():
-            values = {x: node.evaluation() for x in attacker_types}
-            return values
-        for action in node.actions:
-            for attacker in attacker_types:
-                eq = self.nash_equilibrium[node.inf_set()][action]
-                rec_values  = self.__attackers_utilities_rec(node.play(action), attacker_types)
-                if isinstance((eq,dict)):
-                    values[attacker] +=  self.nash_equilibrium[attacker][node.inf_set()][action] * attacker_types[attacker]
-                else:
-                    values[attacker] += self.nash_equilibrium[node.inf_set()][action] * rec_values[attacker]
-
-        return values
 
 
 class VanillaCFR(CounterfactualRegretMinimizationBase):
@@ -227,11 +181,11 @@ class VanillaCFR(CounterfactualRegretMinimizationBase):
         self.iterations = iteration
         return iteration
 
-    def run(self, round = 0, iterations = 1, probs_prefix = None):
+    def run(self, round = 0, iterations = 1):
         self.iterations = iterations
         for i in range(0, iterations):
             print('iteration ' + str(round) + '_' + str(i))
-            u = self._cfr_utility_recursive(self.root, 1, 1, probs_prefix)
+            u = self._cfr_utility_recursive(self.root, 1, 1)
             # since we do not update sigmas in each information set while traversing, we need to
             # traverse the tree to perform to update it now
             self.__update_sigma_recursively(self.root)

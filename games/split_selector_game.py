@@ -27,6 +27,7 @@ class SelectorRootChanceGameState(GameStateBase):
         self._chance_prob = 1. / len(self.children)
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
 
+
     def is_terminal(self):
         return False
 

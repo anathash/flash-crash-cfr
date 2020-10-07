@@ -364,12 +364,13 @@ class AssetFundsNetwork:
 
     @classmethod
     def load_from_file(cls, file_name, mi_calc: MarketImpactCalculator):
-        class_dict = json.load(open(file_name))
-        class_funds = class_dict['funds']
-        class_assets = class_dict['assets']
-        funds = jsonpickle.decode(class_funds)
-        assets = jsonpickle.decode(class_assets)
-        return cls(funds, assets, mi_calc)
+        with open(file_name, 'r') as f:
+            class_dict = json.load(f)
+            class_funds = class_dict['funds']
+            class_assets = class_dict['assets']
+            funds = jsonpickle.decode(class_funds)
+            assets = jsonpickle.decode(class_assets)
+            return cls(funds, assets, mi_calc)
 
     def save_to_file(self, filename):
         funds_dict = jsonpickle.encode(self.funds)

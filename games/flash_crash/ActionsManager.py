@@ -44,6 +44,7 @@ class ActionsManager:
                 self.__attackers_budgets = attacker_budgets
                 self.__set_uniform_portfolios_probabilities(attacker_budgets)
 
+
     def get_portfolios(self):
         return self.__id_to_portfolio
 
@@ -58,6 +59,7 @@ class ActionsManager:
 
     def get_portfolios_in_budget_dict(self):
         return {b: self.get_portfolios_in_budget(b) for b in self.__attackers_budgets}
+
 
     def __set_uniform_portfolios_probabilities(self, attacker_budgets):
         attackers_portfolio_num = {x:0 for x in attacker_budgets}

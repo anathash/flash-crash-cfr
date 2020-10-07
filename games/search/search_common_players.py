@@ -58,8 +58,8 @@ class SearchAttackerMoveGameState(SearchGameStateBase):
                 rounds_left=rounds_left
             )
 
+        self._information_set = ".{0}_{1}".format(".".join(self.location_history[ATTACKER]), grid.attacker_caught())
         self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
-        self._information_set = ".{0}.{1}".format(".".join(self.location_history[ATTACKER]), grid.attacker_caught())
 
 
 class SearchDefenderMoveGameState(SearchGameStateBase):

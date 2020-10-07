@@ -21,7 +21,7 @@ class PPAPlayersHiddenInfo:
                self.attacker_attack == other.attacker_attack and self.attacker_pid == other.attacker_pid
 
 
-class PPAFlashCrashGameStateBase(GameStateBase):
+class FlashCrashGameStateBase(GameStateBase):
 
     def __init__(self, parent, to_move, actions, af_network, players_info, actions_history):
         super().__init__(parent=parent, to_move = to_move,actions=actions)
@@ -40,62 +40,7 @@ class PPAFlashCrashGameStateBase(GameStateBase):
         return -1*self.af_network.count_margin_calls()
 
 
-class PPAFlashCrashRootChanceGameState(GameStateBase):
-    def __init__(self, action_mgr, af_network:AssetFundsNetwork, defender_budget, attacker_budgets):
-        super().__init__(parent=None, to_move=CHANCE, actions = [str(x) for x in attacker_budgets])
-        self.af_network = af_network
-        self.children = {
-            str(attacker_budget): PPASelectorGameState(
-                parent=self,  actions_manager=action_mgr, to_move=ATTACKER,
-                af_network=af_network,defender_budget=defender_budget, attacker_budget=attacker_budget
-            ) for attacker_budget in attacker_budgets
-        }
-
-        self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
-        self._chance_prob = 1./len(attacker_budgets)
-
-
-    def is_terminal(self):
-        return False
-
-    def inf_set(self):
-        return "."
-
-    def chance_prob(self):
-        return self._chance_prob
-
-    def sample_one(self):
-        return random.choice(list(self.children.values()))
-
-
-class PPASelectorGameState(GameStateBase):
-    def __init__(self, parent, actions_manager, to_move,
-                 af_network:AssetFundsNetwork, defender_budget, attacker_budget):
-        portfolios_in_budget = actions_manager.get_portfolios_in_budget(attacker_budget)
-        portfolios = {x: y.order_set for x, y in actions_manager.get_portfolios().items() if x in portfolios_in_budget}
-        super().__init__(parent=parent, to_move=to_move, actions=portfolios.keys())
-        self.af_network = af_network
-        self.children = {
-            str(p_id): PPAAttackerMoveGameState(
-                parent=self,  actions_manager=actions_manager, to_move=ATTACKER,
-                players_info=PPAPlayersHiddenInfo(p, p_id, defender_budget, attacker_budget),
-                af_network=af_network,
-                actions_history={BUY:[],SELL:[],SIM_TRADE:[]}
-            ) for p_id, p in portfolios.items()
-        }
-
-        self._information_set = ".{0}".format(str(attacker_budget))
-        self.tree_size = 1 + sum([x.tree_size for x in self.children.values()])
-
-    def is_terminal(self):
-        return False
-
-    def inf_set(self):
-        return self._information_set
-
-
-
-class PPAMarketMoveGameState(PPAFlashCrashGameStateBase):
+class FlashCrashMarketMoveGameState(FlashCrashGameStateBase):
 
     def __init__(self, parent,  actions_manager, to_move, players_info, af_network, actions_history):
         self.terminal = af_network.no_more_sell_orders()
@@ -117,7 +62,7 @@ class PPAMarketMoveGameState(PPAFlashCrashGameStateBase):
             actions_history2[SELL].append(action)
             actions_history2[BUY].append(action)
             actions_history2[SIM_TRADE].append(action)
-            self.children[action] = PPAAttackerMoveGameState(
+            self.children[action] = FlashCrashAttackerMoveGameState(
                     self,
                     actions_manager,
                     ATTACKER,
@@ -134,11 +79,10 @@ class PPAMarketMoveGameState(PPAFlashCrashGameStateBase):
         return self.terminal
 
 
-class PPAAttackerMoveGameState(PPAFlashCrashGameStateBase):
+class FlashCrashAttackerMoveGameState(FlashCrashGameStateBase):
     def __init__(self, parent, actions_manager, to_move, players_info, af_network, actions_history):
         actions = actions_manager.get_possible_attacks_from_portfolio(players_info.attacker_attack, af_network.no_more_sell_orders())
-        if not actions:
-            actions = [{'action_subset': [], 'remaining_orders': []}]
+
 
         super().__init__(parent=parent,  to_move=to_move, actions = [str(x['action_subset']) for x in actions ],
                           af_network=af_network, players_info=players_info, actions_history=actions_history)
@@ -166,7 +110,7 @@ class PPAAttackerMoveGameState(PPAFlashCrashGameStateBase):
         return False
 
 
-class PPADefenderMoveGameState(PPAFlashCrashGameStateBase):
+class FlashCrashDefenderMoveGameState(FlashCrashGameStateBase):
 
     def __init__(self, parent, actions_manager, to_move, players_info, af_network, actions_history):
         defenses = actions_manager.get_possible_defenses(af_network, players_info.defender)
@@ -182,7 +126,7 @@ class PPADefenderMoveGameState(PPAFlashCrashGameStateBase):
             net2.submit_buy_orders(order_set)
             actions_history2 = copy.deepcopy(actions_history)
             actions_history2[BUY].append(str(order_set))
-            self.children[str(order_set)] = PPAMarketMoveGameState(
+            self.children[str(order_set)] = FlashCrashMarketMoveGameState(
                 self,
                 actions_manager,
                 MARKET,

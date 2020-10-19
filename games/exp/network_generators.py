@@ -26,7 +26,7 @@ def gen_network_uniform_funds(game_config, num_assets, assets_file, dir_name):
     return  network
 
 def gen_network_nonuniform_funds(game_config, num_assets, assets_file, dir_name, num_low_risk, num_medium_risk, num_high_risk):
-    game_config.num_assets = 10
+    game_config.num_assets = num_assets
     game_config.num_funds =  num_low_risk +  num_medium_risk + num_high_risk
     initial_capitals, initial_leverages, tolerances = gen_funds_parameters( num_low_risk, num_medium_risk, num_high_risk, game_config)
     #config.initial_fund_capital = 1000000
@@ -78,6 +78,11 @@ def gen_new_network(num_assets, uniform = True, results_dir = '../../results/net
     config.initial_fund_capital = 1000000
     config.density = 0.5
     if uniform:
-        return dirname, gen_network_uniform_funds(config,  num_assets, 'C:\\research\\Flash Crash\\real market data\\assets.csv', dirname)
+        return dirname, gen_network_uniform_funds(config,  num_assets, '..\\..\\resources\\assets.csv', dirname)
     else:
-        return dirname, gen_network_nonuniform_funds(config,  num_assets, 'C:\\research\\Flash Crash\\real market data\\assets.csv', dirname, num_assets, 5, 5,5)
+        return dirname, gen_network_nonuniform_funds(config,  num_assets, '..\\..\\resources\\assets.csv',dirname, 5, 5,5)
+
+#    if uniform:
+#        return dirname, gen_network_uniform_funds(config,  num_assets, 'C:\\research\\Flash Crash\\real market data\\assets.csv', dirname)
+#    else:
+#        return dirname, gen_network_nonuniform_funds(config,  num_assets, 'C:\\research\\Flash Crash\\real market data\\assets.csv', dirname, num_assets, 5, 5,5)#

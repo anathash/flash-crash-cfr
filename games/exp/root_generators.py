@@ -49,7 +49,8 @@ class FlashCrashRootGenerator(RootGenerator):
     def _gen_roots(self, game_size):
         if game_size == 4:
             dirname = '../../results/networks/Fri_Sep_11_10_00_15_2020/' #4X4
-            network = get_network_from_dir(dirname)
+            #network = get_network_from_dir(dirname)
+            dirname, network = gen_new_network(num_assets=4,uniform=False)
 
         if game_size == 3:
             dirname = '../../results/networks/Fri_Sep_11_09_33_08_2020/' #3X3

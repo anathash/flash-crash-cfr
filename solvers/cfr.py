@@ -206,6 +206,34 @@ class CounterfactualRegretMinimizationBase:
 
         return values
 
+    def fix_attackers_eq(self, attacker_types):
+        values = self.split_value(attacker_types)
+        print(values)
+
+    def split_value(self, attacker_types):
+
+        values =  self.__split_value_rec(self.root, attacker_types)
+
+    def __split_value_rec(self, node, attacker_types):
+        values = {x: 0. for x in attacker_types}
+        if node.is_terminal():
+            value = node.evaluation()
+            node.set_value(value)
+            return value
+        for action in node.actions:
+            nash_eq = self.nash_equilibrium[node.inf_set()][action]
+            if nash_eq == 0:
+                continue
+            if isinstance(nash_eq, dict):
+                for a in attacker_types:
+                    values[a] += nash_eq[a] * self.__split_value_rec(node.play(action))
+            else:
+                for a in attacker_types:
+                    values[a] += nash_eq * self.__value_of_the_game_state_recursive(node.play(action))
+
+        return values
+
+
 
 class VanillaCFR(CounterfactualRegretMinimizationBase):
 

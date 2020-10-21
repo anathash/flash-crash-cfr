@@ -240,11 +240,16 @@ def run_utility_cmp_nodes_iterations(root_generator, res_dir, params,
                 {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE2'},
                 {'attacker_alg': 'COMPLETE', 'defender_alg': 'SPLIT'},
                 {'attacker_alg': 'SPLIT', 'defender_alg': 'COMPLETE'}]
+    print('Generating Roots')
+    root_generator.gen_roots(game_size)
+    print('Done Generating Roots')
 
+    nodes_allocated = root_generator.get_complete_game_root().tree_size * 100
+    print(nodes_allocated)
+    jump = nodes_allocated
+    max_nodes = jump*10
     while nodes_allocated <= max_nodes:
-        print('Generating Roots')
-        root_generator.gen_roots(game_size)
-        print('Done Generating Roots')
+
 
         split_game_cfr = SplitGameCFR()
         split_overall_nodes_num = root_generator.get_split_main_game_root().tree_size + 1 + \
@@ -254,8 +259,11 @@ def run_utility_cmp_nodes_iterations(root_generator, res_dir, params,
 
 
         split_iterations = int(floor(nodes_allocated / split_overall_nodes_num))
-        nodes_allocated = int(split_iterations/ split_overall_nodes_num)
-        complete_iterations = int(floor(nodes_allocated /root_generator.get_complete_game_root().tree_size))
+     #   nodes_allocated = int(split_iterations/ split_overall_nodes_num)
+        print(root_generator.get_complete_game_root().tree_size)
+        print("nodes allocated:" + str(nodes_allocated))
+        print(nodes_allocated  / root_generator.get_complete_game_root().tree_size )
+        complete_iterations = int(floor(nodes_allocated/root_generator.get_complete_game_root().tree_size ))
         print('complete_iterations:' + str(complete_iterations))
         complete_cfr = VanillaCFR(root_generator.get_complete_game_root())
         complete_cfr.run( round = 0, iterations = complete_iterations)
@@ -306,7 +314,9 @@ def run_utility_cmp_nodes_iterations(root_generator, res_dir, params,
                                               split_main_root=root_generator.get_split_main_game_root(),
                                               split_main_cfr=main_game_results['cfr'],
                                               attacker_alg=setting['attacker_alg'],
-                                              defender_alg = setting['defender_alg'], rounds=1000)
+                                              defender_alg = setting['defender_alg'],
+                                              attacker_types=  params['attacker_budgets'],
+                                                rounds=1000)
 
             row = {'nodes allocated': nodes_allocated,
                    'attacker algorithm': setting['attacker_alg'],

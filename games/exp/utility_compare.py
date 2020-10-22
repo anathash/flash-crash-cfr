@@ -221,7 +221,7 @@ def run_utility_cmp_nodes_iterations(root_generator, res_dir, params,
                         min_nodes, max_nodes, jump, game_size, game_name):
 
     fieldnames = ['nodes allocated', 'attacker algorithm', 'defender algorithm', 'attacker game iterations',
-                  'defender game iterations', 'expected utility']
+                  'defender game iterations', 'defender utility']
     num_attacker = len(params['attacker_budgets'])
     for a in params['attacker_budgets']:
         fieldnames.append('attacker ' + str(a) + ' utility')
@@ -323,7 +323,7 @@ def run_utility_cmp_nodes_iterations(root_generator, res_dir, params,
                    'defender algorithm': setting['defender_alg'],
                    'attacker game iterations': attacker_iterations,
                    'defender game iterations': defender_iterations,
-                   'expected utility': utility}
+                   'defender utility': utilities['defender']}
             for a in params['attacker_budgets']:
                 k = 'attacker ' + str(a) + ' utility'
                 row.update({k: utilities[str(a)]})
@@ -592,7 +592,7 @@ def search_sanitty():
                     1000000, 10000000, 1000000, exp_params['game_size'], 'search')
 
 if __name__ == "__main__":
-    run_fc_utility_cmp_nodes(4)
+    run_fc_utility_cmp_nodes(3)
 #    run_fc_utility_cmp_nodes(4)
 #    run_search_utility_cmp_nodes(5)
 #    run_search_utility_cmp_nodes(8)

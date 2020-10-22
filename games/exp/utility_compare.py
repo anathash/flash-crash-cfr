@@ -288,16 +288,18 @@ def run_utility_cmp_nodes_iterations(root_generator, res_dir, params,
             if setting['attacker_alg'] == 'COMPLETE2':
                 attacker_iterations = complete_iterations*2
                 defender_iterations  = complete_iterations
-                utility= run_sanity_iterations(complete_root=root_generator.get_complete_game_root(),
+                utilities= run_sanity_iterations(complete_root=root_generator.get_complete_game_root(),
                                           attacker_complete_cfr=complete_cfr,
-                                          defender_complete_cfr=complete_cfr2)
+                                          defender_complete_cfr=complete_cfr2,
+                                          attacker_types=params['attacker_budgets'])
             elif setting['defender_alg'] == 'COMPLETE2':
                 attacker_iterations = complete_iterations
                 defender_iterations = complete_iterations*2
 
-                utility =run_sanity_iterations(complete_root=root_generator.get_complete_game_root(),
+                utilities =run_sanity_iterations(complete_root=root_generator.get_complete_game_root(),
                                           attacker_complete_cfr=complete_cfr,
-                                          defender_complete_cfr=complete_cfr2)
+                                          defender_complete_cfr=complete_cfr2,
+                                          attacker_types=params['attacker_budgets'])
 
             else:
                 if setting['attacker_alg'] == 'COMPLETE':

@@ -39,7 +39,7 @@ class SplitPlayer(Player):
             strategy = cfr.nash_equilibrium[inf_set][self.attacker_type]
         else:
             strategy = cfr.nash_equilibrium[inf_set]
-        return random.choice(list(strategy.keys()), 1, list(strategy.values()))[0]
+        return random.choice(list(strategy.keys()), p=list(strategy.values()))
 
     def get_next_action(self, inf_set):
         return self.select_action_from_strategy(self.main_cfr, inf_set)
@@ -59,7 +59,7 @@ class CompletePlayer(Player):
 
     def select_action_from_strategy(self, cfr, inf_set):
         strategy = cfr.nash_equilibrium[inf_set]
-        return random.choice(list(strategy.keys()), 1, list(strategy.values()))[0]
+        return random.choice(list(strategy.keys()), p=list(strategy.values()))
 
     def get_next_action(self, inf_set):
         return self.select_action_from_strategy(self.cfr, inf_set)
@@ -73,13 +73,17 @@ class CompletePlayer(Player):
 def run_game(node, attacker, defender):
     while not node.is_terminal():
             attacker_action = attacker.get_next_action(node.inf_set())
-            node = node.children[attacker_action]
-            defender_action = defender.get_next_action(node.inf_set())
-            node = node.children[defender_action]
+            defender_node = node.children[attacker_action]
+            defender_action = defender.get_next_action(defender_node.inf_set())
+            chance_node = defender_node.children[defender_action]
             #market or grid
-            if not node.is_terminal():
-                market_action = defender.get_next_action(node.inf_set())
-                node = node.children[market_action]
+            if chance_node.is_terminal():
+                node = chance_node
+            else:
+                market_action = defender.get_next_action(chance_node.inf_set())
+                node = chance_node.children[market_action]
+
+
 
     return node.evaluation()
 
@@ -124,7 +128,7 @@ def run_game_iteration(complete_root, complete_cfr,
 def run_game_iterations(complete_root, complete_cfr,
                        split_selection_root, split_selection_cfr,
                        split_main_root, split_main_cfr,
-                       attacker_alg, defender_alg, attacker_types,  rounds = 10000):
+                       attacker_alg, defender_alg, attacker_types,  rounds = 100000):
     value_sum = {str(x):[] for x in attacker_types}
     value_sum.update({'defender' : []})
     for i in range(0,rounds):
@@ -138,14 +142,14 @@ def run_game_iterations(complete_root, complete_cfr,
     return avg_value
 
 
-def run_sanity_iterations(complete_root, attacker_complete_cfr,
-                          defender_complete_cfr, attacker_types, rounds = 10000):
+def run_sanity_iterations(attacker_root, defender_root, attacker_complete_cfr,
+                          defender_complete_cfr, attacker_types, rounds = 1000):
 
     value_sum = {str(x):[] for x in attacker_types}
     value_sum.update({'defender' : []})
     for i in range(0,rounds):
-        attacker = CompletePlayer(attacker_complete_cfr, complete_root)
-        defender = CompletePlayer(defender_complete_cfr, complete_root)
+        attacker = CompletePlayer(attacker_complete_cfr, attacker_root)
+        defender = CompletePlayer(defender_complete_cfr, defender_root)
         attacker_type, node = attacker.get_subgame_root()
         value = run_game(node, attacker, defender)
         value_sum['defender'].append(value)
@@ -218,7 +222,7 @@ def run_utility_cmp(root_generator, res_dir, params,
 
 
 def run_utility_cmp_nodes_iterations(root_generator, res_dir, params,
-                        min_nodes, max_nodes, jump, game_size, game_name):
+                        min_nodes, max_nodes, jump, game_size, game_name, ratio):
 
     fieldnames = ['nodes allocated', 'attacker algorithm', 'defender algorithm', 'attacker game iterations',
                   'defender game iterations', 'defender utility']
@@ -339,6 +343,219 @@ def run_utility_cmp_nodes_iterations(root_generator, res_dir, params,
     return res_dir
 
 
+
+def run_utility_cmp_iterations(root_generator, res_dir, params,
+                               min_iterations, max_iterations, jump, game_size, game_name, ratio):
+
+    fieldnames = ['nodes allocated', 'attacker algorithm', 'defender algorithm', 'attacker game iterations',
+                  'defender game iterations', 'defender utility']
+    num_attacker = len(params['attacker_budgets'])
+    for a in params['attacker_budgets']:
+        fieldnames.append('attacker ' + str(a) + ' utility')
+
+    file_name = res_dir + game_name + '_utility_cmp' + '_' + str(game_size)+'.csv'
+    with open(file_name,'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+
+
+    settings = [{'attacker_alg': 'SPLIT', 'defender_alg': 'SPLIT'},
+                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE'},
+                {'attacker_alg': 'COMPLETE' + str(ratio), 'defender_alg': 'COMPLETE'},
+                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE' + str(ratio)},
+                {'attacker_alg': 'COMPLETE', 'defender_alg': 'SPLIT'},
+                {'attacker_alg': 'SPLIT', 'defender_alg': 'COMPLETE'}]
+
+    #nodes_allocated = root_generator.get_complete_game_root().tree_size * 100
+    #print(nodes_allocated)
+
+    #jump = nodes_allocated
+    #max_nodes = jump*10
+
+    completer_iterations = min_iterations
+    while completer_iterations <= max_iterations:
+        print('Generating Roots')
+        root_generator.gen_roots(game_size)
+        print('Done Generating Roots')
+
+        nodes_allocated = root_generator.get_complete_game_root().tree_size * completer_iterations
+        split_game_cfr = SplitGameCFR()
+        split_overall_nodes_num = root_generator.get_split_main_game_root().tree_size + 1 + \
+                                  len(params['attacker_budgets']) + \
+                                  sum([len(v) for k, v, in root_generator.get_attack_costs().items()])
+
+        split_iterations = int(floor(nodes_allocated / split_overall_nodes_num))
+
+        print('split_iterations:' + str(split_iterations))
+        params['iterations'] = split_iterations
+        (main_game_cfr, selector_cfr) = split_game_cfr.run_split_cfr(root_generator, params)
+        selector_game_result = split_game_cfr.get_selector_stats(main_game_cfr, selector_cfr, split_iterations,
+                                                                 params['attacker_budgets'],
+                                                                 root_generator.get_attack_costs())
+        main_game_results = split_game_cfr.get_main_results_stats(main_game_cfr, params['iterations'])
+
+     #   nodes_allocated = int(split_iterations/ split_overall_nodes_num)
+        print(root_generator.get_complete_game_root().tree_size)
+        print("nodes allocated:" + str(nodes_allocated))
+        print(nodes_allocated  / root_generator.get_complete_game_root().tree_size )
+        complete_iterations = int(floor(nodes_allocated/root_generator.get_complete_game_root().tree_size ))
+        print('complete_iterations:' + str(complete_iterations))
+
+        complete_cfr = VanillaCFR(root_generator.get_complete_game_root())
+        complete_cfr.run( round = 0, iterations = complete_iterations)
+        complete_cfr.compute_nash_equilibrium()
+
+        print('complete_iterations_'+str(ratio) + ':' + str(complete_iterations*ratio))
+        complete_cfr2 = VanillaCFR(root_generator.get_complete_game_root())
+        complete_cfr2.run( round = 0, iterations = complete_iterations*ratio)
+        complete_cfr2.compute_nash_equilibrium()
+
+
+        for setting in settings:
+            print(setting)
+            if setting['attacker_alg'] == 'COMPLETE'+str(ratio):
+                attacker_iterations = complete_iterations*ratio
+                defender_iterations  = complete_iterations
+                utilities= run_sanity_iterations(attacker_root=root_generator.get_complete_game_root(),
+                                                 defender_root=root_generator.get_complete_game_root(),
+                                          attacker_complete_cfr=complete_cfr2,
+                                          defender_complete_cfr=complete_cfr,
+                                          attacker_types=params['attacker_budgets'])
+            elif setting['defender_alg'] == 'COMPLETE'+str(ratio):
+                attacker_iterations = complete_iterations
+                defender_iterations = complete_iterations*ratio
+
+                utilities =run_sanity_iterations(attacker_root=root_generator.get_complete_game_root(),
+                                                 defender_root=root_generator.get_complete_game_root(),
+                                          attacker_complete_cfr=complete_cfr,
+                                          defender_complete_cfr=complete_cfr2,
+                                          attacker_types=params['attacker_budgets'])
+
+            else:
+                if setting['attacker_alg'] == 'COMPLETE':
+                    attacker_iterations = complete_iterations
+                    defender_iterations = split_iterations
+                else:
+                    attacker_iterations = split_iterations
+                    defender_iterations = complete_iterations
+
+                utilities = run_game_iterations(complete_root=root_generator.get_complete_game_root(),
+                                              complete_cfr=complete_cfr,
+                                              split_selection_root=selector_game_result['root'],
+                                              split_selection_cfr=selector_game_result['cfr'],
+                                              split_main_root=root_generator.get_split_main_game_root(),
+                                              split_main_cfr=main_game_results['cfr'],
+                                              attacker_alg=setting['attacker_alg'],
+                                              defender_alg = setting['defender_alg'],
+                                              attacker_types=  params['attacker_budgets'],
+                                                rounds=1000)
+
+            row = {'nodes allocated': nodes_allocated,
+                   'attacker algorithm': setting['attacker_alg'],
+                   'defender algorithm': setting['defender_alg'],
+                   'attacker game iterations': attacker_iterations,
+                   'defender game iterations': defender_iterations,
+                   'defender utility': utilities['defender']}
+            for a in params['attacker_budgets']:
+                k = 'attacker ' + str(a) + ' utility'
+                row.update({k: utilities[str(a)]})
+
+            with open(file_name, 'a', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writerow(row)
+
+        completer_iterations += jump
+
+    return res_dir
+
+
+def run_sanity_cmp_iterations(root_generator, res_dir, params,
+                               min_iterations, max_iterations, jump, game_size, game_name, ratio):
+
+    fieldnames = ['nodes allocated', 'attacker algorithm', 'defender algorithm', 'attacker game iterations',
+                  'defender game iterations', 'defender utility']
+    num_attacker = len(params['attacker_budgets'])
+    for a in params['attacker_budgets']:
+        fieldnames.append('attacker ' + str(a) + ' utility')
+
+    file_name = res_dir + game_name + '_utility_cmp' + '_' + str(game_size)+'.csv'
+    with open(file_name,'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+
+
+    settings = [
+                {'attacker_alg': 'COMPLETE' + str(ratio), 'defender_alg': 'COMPLETE'},
+                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE' + str(ratio)}]
+
+
+    #nodes_allocated = root_generator.get_complete_game_root().tree_size * 100
+    #print(nodes_allocated)
+
+    #jump = nodes_allocated
+    #max_nodes = jump*10
+
+    completer_iterations = min_iterations
+    while completer_iterations <= max_iterations:
+        print('Generating Roots')
+        root_generator.gen_roots(game_size)
+        root1 = root_generator.get_complete_game_root()
+        root2 = root_generator.complete_root2
+
+        print('Done Generating Roots')
+
+        nodes_allocated = root1.tree_size * completer_iterations
+        complete_iterations = int(floor(nodes_allocated/root1.tree_size ))
+        complete_cfr = VanillaCFR(root1)
+        complete_cfr.run( round = 0, iterations = complete_iterations)
+        complete_cfr.compute_nash_equilibrium()
+
+        print('complete_iterations_'+str(ratio) + ':' + str(complete_iterations*ratio))
+        complete_cfr2 = VanillaCFR(root2)
+        complete_cfr2.run( round = 0, iterations = complete_iterations*ratio)
+        complete_cfr2.compute_nash_equilibrium()
+
+
+        for setting in settings:
+            print(setting)
+            if setting['attacker_alg'] == 'COMPLETE'+str(ratio):
+                attacker_iterations = complete_iterations*ratio
+                defender_iterations  = complete_iterations
+                utilities= run_sanity_iterations(attacker_root=root2,
+                                                 defender_root=root1,
+                                          attacker_complete_cfr=complete_cfr2,
+                                          defender_complete_cfr=complete_cfr,
+                                          attacker_types=params['attacker_budgets'])
+            elif setting['defender_alg'] == 'COMPLETE'+str(ratio):
+                attacker_iterations = complete_iterations
+                defender_iterations = complete_iterations*ratio
+
+                utilities =run_sanity_iterations(attacker_root=root1,
+                                                 defender_root=root2,
+                                          attacker_complete_cfr=complete_cfr,
+                                          defender_complete_cfr=complete_cfr2,
+                                          attacker_types=params['attacker_budgets'])
+
+            row = {'nodes allocated': nodes_allocated,
+                   'attacker algorithm': setting['attacker_alg'],
+                   'defender algorithm': setting['defender_alg'],
+                   'attacker game iterations': attacker_iterations,
+                   'defender game iterations': defender_iterations,
+                   'defender utility': utilities['defender']}
+            for a in params['attacker_budgets']:
+                k = 'attacker ' + str(a) + ' utility'
+                row.update({k: utilities[str(a)]})
+
+            with open(file_name, 'a', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writerow(row)
+
+        completer_iterations += jump
+
+    return res_dir
+
 def run_utility_cmp_nodes(root_generator, res_dir, params,
                            game_size, game_name):
 
@@ -354,9 +571,9 @@ def run_utility_cmp_nodes(root_generator, res_dir, params,
         writer.writeheader()
 
     settings = [{'attacker_alg': 'SPLIT', 'defender_alg': 'SPLIT'},
-                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE'},
-                {'attacker_alg': 'COMPLETE2', 'defender_alg': 'COMPLETE'},
-                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE2'},
+  #              {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE'},
+  #              {'attacker_alg': 'COMPLETE2', 'defender_alg': 'COMPLETE'},
+  #              {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE2'},
                 {'attacker_alg': 'COMPLETE', 'defender_alg': 'SPLIT'},
                 {'attacker_alg': 'SPLIT', 'defender_alg': 'COMPLETE'}]
 
@@ -536,15 +753,26 @@ def run_fc_utility_cmp_nodes(game_size):
 
     root_generator = FlashCrashRootGenerator(exp_params)
 
-    #run_utility_cmp_nodes(root_generator, res_dir, exp_params,exp_params['game_size'], 'flash_crash')
-    run_utility_cmp_nodes_iterations(root_generator=root_generator,
+    run_utility_cmp_nodes(root_generator, res_dir, exp_params,exp_params['game_size'], 'flash_crash')
+    run_utility_cmp_iterations(root_generator=root_generator,
                                      res_dir=res_dir,
                                      params=exp_params,
-                                     min_nodes=10000000,
-                                     max_nodes=10000000,
-                                     jump=1000000,
+                                     min_iterations=1,
+                                     max_iterations=100,
+                                     jump=10,
                                      game_size=exp_params['game_size'],
-                                     game_name='flash_crash')
+                                     game_name='flash_crash',
+                                     ratio = 2)
+
+#    run_sanity_cmp_iterations(root_generator=root_generator,
+#                                     res_dir=res_dir,
+#                                     params=exp_params,
+#                                     min_iterations=1,
+#                                     max_iterations=1000,
+#                                     jump=100,
+#                                     game_size=exp_params['game_size'],
+#                                     game_name='flash_crash',
+#                                     ratio = 10)
 
 
 def run_search_utility_cmp():
@@ -570,14 +798,17 @@ def run_search_utility_cmp_nodes(game_size):
 
     #2500000
     root_generator = SearchRootGenerator(exp_params)
-    run_utility_cmp_nodes(root_generator=root_generator,
+
+    #run_utility_cmp_iterations(root_generator=root_generator,
+    run_sanity_cmp_iterations(root_generator=root_generator,
                           res_dir=res_dir,
                           params =exp_params,
-#                          min_nodes=10000000,
-#                          max_nodes=10000000,
-#                          jump=1000000,
+                          min_iterations=1,
+                          max_iterations=1000,
+                          jump=100,
                           game_size=exp_params['game_size'],
-                          game_name='search')
+                          game_name='search',
+                          ratio = 10)
     return
 
 def search_sanitty():
@@ -594,11 +825,14 @@ def search_sanitty():
                     1000000, 10000000, 1000000, exp_params['game_size'], 'search')
 
 if __name__ == "__main__":
-    run_fc_utility_cmp_nodes(3)
-#    run_fc_utility_cmp_nodes(4)
 #    run_search_utility_cmp_nodes(5)
-#    run_search_utility_cmp_nodes(8)
+  #  run_fc_utility_cmp_nodes(3)
+ #   run_search_utility_cmp_nodes(6)
+    run_fc_utility_cmp_nodes(4)
+
+
 #    run_fc_utility_cmp_nodes(6)
+
 
 #
 #

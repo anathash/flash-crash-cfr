@@ -15,7 +15,7 @@ from math import inf
 
 MAX_X = 4
 MAX_Y = 2
-MAX_VALUE = 100
+MAX_VALUE = 0
 
 
 # define Python user-defined exceptions
@@ -78,7 +78,7 @@ INITIAL_GRID = {
     (3,1): Node([OCCUPANTS.P2]),
     (3,2): Node([]),
     (4,0): Node([], False, 3),
-    (4,1): Node([], False, 10),
+    (4,1): Node([], False, 11),
     (4,2): Node([], False, 5)
 }
 

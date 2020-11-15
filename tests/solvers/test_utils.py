@@ -55,6 +55,9 @@ def compare_equilibrium(ut, game_size, iterations, root_generator, attacker_budg
             sigma = complete_cfr.nash_equilibrium[inf_set][action]
             #sigma = complete_cfr.sigma[inf_set][action]
            # if not numpy.isclose(sigma, 0, rtol=1e-05, atol=1e-08, equal_nan=False):
+
+            ut.assertAlmostEqual(complete_cfr.nash_equilibrium[inf_set][action], selector_cfr.nash_equilibrium[inf_set][action], 5)
+
             cmp_subtree(ut=ut, split_node = root_generator.get_split_main_game_root().children[action],
                              complete_node =  node.children[action],
                              split_cfr = main_game_cfr,

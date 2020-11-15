@@ -334,6 +334,7 @@ class AssetFundsNetwork:
                                           initial_leverages, assets_initial_prices,
                                           tolerances, assets_num_shares, volatility, mi_calc)
 
+
     @classmethod
     def gen_network_from_graph(cls, g, investment_proportions,
                                initial_capitals, initial_leverages, assets_initial_prices,
@@ -360,6 +361,41 @@ class AssetFundsNetwork:
             funds[fund_symbol] = Fund(fund_symbol, portfolio, initial_capitals[i], initial_leverages[i], tolerances[i])
         return cls(funds, assets, mi_calc)
 
+    def gen_network_by_paper(cls,  beta, rho, sigma,
+                               initial_capitals, initial_leverages, assets_initial_prices,
+                               tolerances, daily_volumes, volatility, mi_calc: MarketImpactCalculator, replace = False,):
+        funds = {}
+        assets = {}
+        assets_investment_portion = {sym:0 for sym in assets.keys()}
+        num_assets = len(assets_initial_prices)
+        for i in range(len(num_assets)):
+            symbol = 'a' + str(i)
+            assets[symbol] = Asset(price=assets_initial_prices[i], daily_volume=daily_volumes[i], symbol=symbol,
+                                   volatility = volatility[i])
+        for i in range(initial_leverages):
+            investment_size = {}
+            assets_sorted = sorted(assets_investment_portion.items(), key=lambda kv: kv[1])
+            pj = {}
+            for j in range(1, num_assets+1):
+                if beta < 0:
+                    r_j =  num_assets - j +1
+                else:
+                    r_j = j
+                sym = assets_sorted[j][0]
+                pj[sym] = pow(r_j,beta)
+            pj_sum = sum(pj.values())
+            pj[symbol] = pj[symbol]/pj_sum
+            k_fund = max(1,numpy.random.normal(rho, sigma))
+            for k in range (0, k_fund):
+                choice = numpy.random.choice(pj.keys(), p = pj.values(),replace=replace)
+                investment_size[choice] = numpy.random.normal(0, 1)
+                investemnt_sum = sum(investment_size.values())
+            investemnt_sum_normed = {x:(total_capital*y)/investemnt_sum for x,y in  investment_size.items()}
+            portfolio = {floor(investemnt_sum_normed[x]/assets[x].price for x in investemnt_sum_normed.keys())}
+            fund_symbol = 'f' + str(i)
+            total_capital = initial_capitals[i](+ initial_leverages[i])
+            funds[fund_symbol] = Fund(fund_symbol, portfolio, initial_capitals[i], initial_leverages[i], tolerances[i])
+        return cls(funds, assets, mi_calc)
 
 
     @classmethod

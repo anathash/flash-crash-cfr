@@ -4,6 +4,27 @@ from AssetFundNetwork import AssetFundsNetwork
 from GameConfig import GameConfig
 from MarketImpactCalculator import ExponentialMarketImpactCalculator
 
+
+def generate_paper_network(game_config, num_assets):
+    dir_name = '../../results/networks/'
+    initial_capitals = [game_config.initial_fund_capital] * game_config.num_funds
+    initial_leverages = [game_config.initial_leverage] * game_config.num_funds
+    tolerances = [game_config.tolerance] * game_config.num_funds
+    assets_file = '..\\..\\resources\\assets.csv'
+    network = AssetFundsNetwork.gen_network_by_paper(beta=game_config.beta,
+                                                     num_assets=num_assets,
+                                                     rho=game_config.rho,
+                                                     sigma=game_config.sigma,
+                                                     assets_file=assets_file,
+                                                     initial_capitals=initial_capitals,
+                                                     initial_leverages=initial_leverages,
+                                                     tolerances=tolerances,
+                                                     mi_calc= ExponentialMarketImpactCalculator(game_config.impact_calc_constant))
+    network.save_to_file(dir_name + 'network.json')
+
+    return network
+
+
 def gen_network_uniform_funds(game_config, num_assets, assets_file, dir_name):
     config = GameConfig()
 #    config.num_assets = 10
@@ -13,7 +34,7 @@ def gen_network_uniform_funds(game_config, num_assets, assets_file, dir_name):
     initial_leverages = [game_config.initial_leverage] * game_config.num_funds
     tolerances = [game_config.tolerance] * game_config.num_funds
 
-    network = AssetFundsNetwork.generate_random_funds_network(density = game_config.density,
+    network = AssetFundsNetwork.generate_random_funds_network(density = game_config.rho,
                                                               num_funds=num_assets,
                                                               initial_capitals= initial_capitals,
                                                               initial_leverages=initial_leverages,
@@ -34,7 +55,7 @@ def gen_network_nonuniform_funds(game_config, num_assets, assets_file, dir_name,
     #initial_leverages = [game_config.initial_leverage] * game_config.num_funds
     #tolerances = [game_config.tolerance] * game_config.num_funds
 
-    network = AssetFundsNetwork.generate_random_funds_network(density = game_config.density,
+    network = AssetFundsNetwork.generate_random_funds_network(density = game_config.rho,
                                                               num_funds=game_config.num_funds,
                                                               initial_capitals= initial_capitals,
                                                               initial_leverages=initial_leverages,
@@ -68,6 +89,7 @@ def get_network_from_dir(dirname):
 
 
 def gen_new_network(num_assets, uniform = True, results_dir = '../../results/networks/'):
+    print('gen network')
     now = time.ctime()
     dirname = results_dir + now.replace(":", "_").replace(" ", "_") + '/'
     if not os.path.exists(dirname):
@@ -77,10 +99,12 @@ def gen_new_network(num_assets, uniform = True, results_dir = '../../results/net
     config.tolerance = 1.01
     config.initial_fund_capital = 1000000
     config.density = 0.5
+#    return dirname, generate_paper_network(config, num_assets)
     if uniform:
         return dirname, gen_network_uniform_funds(config,  num_assets, '..\\..\\resources\\assets.csv', dirname)
     else:
         return dirname, gen_network_nonuniform_funds(config,  num_assets, '..\\..\\resources\\assets.csv',dirname, 5, 5,5)
+
 
 #    if uniform:
 #        return dirname, gen_network_uniform_funds(config,  num_assets, 'C:\\research\\Flash Crash\\real market data\\assets.csv', dirname)

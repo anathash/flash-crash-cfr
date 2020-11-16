@@ -2,7 +2,9 @@ class GameConfig:
     def __init__(self, num_assets=10,
                  num_funds=10,
                  min_order_value=1000,
-                 density=0.5,
+                 rho=0.5,
+                 sigma = 0.001,
+                 beta = 0,
                  asset_daily_volume=200000,
                  asset_volatility=1.2,
                  initial_asset_price=1000,
@@ -31,11 +33,12 @@ class GameConfig:
                  intraday_asset_gain_max_range=1.1,
                  attacker_max_sell_minute_volume_ratio = 2.0,
                  verbose=False):
-
+        self.sigma = sigma
+        self.rho = rho
+        self.beta = beta
         self.num_assets = num_assets
         self.num_funds = num_funds
         self.min_order_value = min_order_value
-        self.density = density
         self.asset_daily_volume = asset_daily_volume
         self.asset_volatility = asset_volatility
         self.initial_asset_price = initial_asset_price

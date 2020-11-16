@@ -253,8 +253,6 @@ def run_utility_cmp_nodes_iterations(root_generator, res_dir, params,
     jump = nodes_allocated
     max_nodes = jump*10
     while nodes_allocated <= max_nodes:
-
-
         split_game_cfr = SplitGameCFR()
         split_overall_nodes_num = root_generator.get_split_main_game_root().tree_size + 1 + \
                                   len(params['attacker_budgets']) + \
@@ -349,7 +347,6 @@ def run_utility_cmp_iterations(root_generator, res_dir, params,
 
     fieldnames = ['nodes allocated', 'attacker algorithm', 'defender algorithm', 'attacker game iterations',
                   'defender game iterations', 'defender utility']
-    num_attacker = len(params['attacker_budgets'])
     for a in params['attacker_budgets']:
         fieldnames.append('attacker ' + str(a) + ' utility')
 
@@ -358,58 +355,53 @@ def run_utility_cmp_iterations(root_generator, res_dir, params,
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
-
-
-    settings = [{'attacker_alg': 'SPLIT', 'defender_alg': 'SPLIT'},
+    settings = [#{'attacker_alg': 'SPLIT', 'defender_alg': 'SPLIT'},
                 {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE'},
-                {'attacker_alg': 'COMPLETE' + str(ratio), 'defender_alg': 'COMPLETE'},
-                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE' + str(ratio)},
+#                {'attacker_alg': 'COMPLETE' + str(ratio), 'defender_alg': 'COMPLETE'},
+#                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE' + str(ratio)},
                 {'attacker_alg': 'COMPLETE', 'defender_alg': 'SPLIT'},
                 {'attacker_alg': 'SPLIT', 'defender_alg': 'COMPLETE'}]
 
-    #nodes_allocated = root_generator.get_complete_game_root().tree_size * 100
-    #print(nodes_allocated)
+    complete_iterations = min_iterations
+    while complete_iterations <= max_iterations:
 
-    #jump = nodes_allocated
-    #max_nodes = jump*10
-
-    completer_iterations = min_iterations
-    while completer_iterations <= max_iterations:
         print('Generating Roots')
         root_generator.gen_roots(game_size)
         print('Done Generating Roots')
 
-        nodes_allocated = root_generator.get_complete_game_root().tree_size * completer_iterations
-        split_game_cfr = SplitGameCFR()
+        nodes_allocated = root_generator.get_complete_game_root().tree_size * complete_iterations
         split_overall_nodes_num = root_generator.get_split_main_game_root().tree_size + 1 + \
                                   len(params['attacker_budgets']) + \
                                   sum([len(v) for k, v, in root_generator.get_attack_costs().items()])
 
         split_iterations = int(floor(nodes_allocated / split_overall_nodes_num))
 
+        print('complete_iterations:' + str(complete_iterations))
+        print("nodes allocated:" + str(nodes_allocated))
         print('split_iterations:' + str(split_iterations))
+
         params['iterations'] = split_iterations
+
+        split_game_cfr = SplitGameCFR()
         (main_game_cfr, selector_cfr) = split_game_cfr.run_split_cfr(root_generator, params)
         selector_game_result = split_game_cfr.get_selector_stats(main_game_cfr, selector_cfr, split_iterations,
                                                                  params['attacker_budgets'],
                                                                  root_generator.get_attack_costs())
         main_game_results = split_game_cfr.get_main_results_stats(main_game_cfr, params['iterations'])
 
-     #   nodes_allocated = int(split_iterations/ split_overall_nodes_num)
-        print(root_generator.get_complete_game_root().tree_size)
-        print("nodes allocated:" + str(nodes_allocated))
-        print(nodes_allocated  / root_generator.get_complete_game_root().tree_size )
-        complete_iterations = int(floor(nodes_allocated/root_generator.get_complete_game_root().tree_size ))
-        print('complete_iterations:' + str(complete_iterations))
+#        print(root_generator.get_complete_game_root().tree_size)
+#        print(nodes_allocated  / root_generator.get_complete_game_root().tree_size )
+ #       complete_iterations = int(floor(nodes_allocated/root_generator.get_complete_game_root().tree_size ))
+
 
         complete_cfr = VanillaCFR(root_generator.get_complete_game_root())
         complete_cfr.run( round = 0, iterations = complete_iterations)
         complete_cfr.compute_nash_equilibrium()
-
-        print('complete_iterations_'+str(ratio) + ':' + str(complete_iterations*ratio))
-        complete_cfr2 = VanillaCFR(root_generator.get_complete_game_root())
-        complete_cfr2.run( round = 0, iterations = complete_iterations*ratio)
-        complete_cfr2.compute_nash_equilibrium()
+        complete_cfr2 = None
+ #        print('complete_iterations_'+str(ratio) + ':' + str(complete_iterations*ratio))
+ #       complete_cfr2 = VanillaCFR(root_generator.get_complete_game_root())
+ #       complete_cfr2.run( round = 0, iterations = complete_iterations*ratio)
+ #       complete_cfr2.compute_nash_equilibrium()
 
 
         for setting in settings:
@@ -465,7 +457,7 @@ def run_utility_cmp_iterations(root_generator, res_dir, params,
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writerow(row)
 
-        completer_iterations += jump
+        complete_iterations += jump
 
     return res_dir
 
@@ -753,7 +745,7 @@ def run_fc_utility_cmp_nodes(game_size):
 
     root_generator = FlashCrashRootGenerator(exp_params)
 
-    run_utility_cmp_nodes(root_generator, res_dir, exp_params,exp_params['game_size'], 'flash_crash')
+   # run_utility_cmp_nodes(root_generator, res_dir, exp_params,exp_params['game_size'], 'flash_crash')
     run_utility_cmp_iterations(root_generator=root_generator,
                                      res_dir=res_dir,
                                      params=exp_params,
@@ -825,16 +817,5 @@ def search_sanitty():
                     1000000, 10000000, 1000000, exp_params['game_size'], 'search')
 
 if __name__ == "__main__":
-#    run_search_utility_cmp_nodes(5)
-  #  run_fc_utility_cmp_nodes(3)
- #   run_search_utility_cmp_nodes(6)
+    #run_search_utility_cmp_nodes(5)
     run_fc_utility_cmp_nodes(4)
-
-
-#    run_fc_utility_cmp_nodes(6)
-
-
-#
-#
-#    run_fc_utility_cmp_nodes(4)
-

@@ -40,6 +40,8 @@ class CounterfactualRegretMinimizationBase:
                 keys = list(self.cumulative_sigma[i].values())[0].keys()
                 sigmas = {k: [self.cumulative_sigma[i][a][k] for a in self.cumulative_sigma[i].keys()] for k in keys}
                 sigma_sums = {k: sum(sigmas[k]) for k in keys}
+                if 0 in list(sigma_sums.values()):
+                    print('stop')
                 self.nash_equilibrium[i] = {k:{a: self.cumulative_sigma[i][a][k] / sigma_sums[k] for a in node.actions} for k in keys}
             else:
                 sigma_sum = sum(self.cumulative_sigma[i].values())
@@ -168,11 +170,11 @@ class CounterfactualRegretMinimizationBase:
         value = 0.
         if node.is_terminal():
             value = node.evaluation()
-            node.set_value(value)
+#            node.set_value(value)
             return value
         for action in node.actions:
             value +=  self.nash_equilibrium[node.inf_set()][action] * self.__value_of_the_game_state_recursive(node.play(action))
-        node.set_value(value)
+#        node.set_value(value)
         return value
 
     def attackers_cfr_utilities(self):

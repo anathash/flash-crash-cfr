@@ -5,7 +5,6 @@ from math import inf
 
 from constants import ATTACKER, CHANCE, DEFENDER
 from games.bases import GameStateBase
-from search.Grid import Grid
 from search.search_common_players import SearchGameStateBase, SearchAttackerMoveGameState
 
 

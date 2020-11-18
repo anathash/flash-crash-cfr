@@ -4,7 +4,9 @@ from ActionsManager import ActionsManager
 from exp.network_generators import gen_new_network, get_network_from_dir
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
 from flash_crash_players_portfolio_per_attacker_cfr import PPAFlashCrashRootChanceGameState
-from search.Grid import Grid
+from search.BinaryGrid import BinaryGrid
+from search.ProbsGrid import ProbsGrid
+
 from search.search_players_complete_game import SearchCompleteGameRootChanceGameState
 from search.search_players_split_main_game import SearchMainGameRootChanceGameState
 
@@ -53,18 +55,21 @@ class FlashCrashRootGenerator(RootGenerator):
 
 
     def _gen_roots(self, game_size):
-        if game_size == 4:
-            dirname = '../../results/networks/Fri_Sep_11_10_00_15_2020/' #4X4
+#        network = get_network_from_dir( '../../results/networks/')
+#       self.dirname, network = gen_new_network(num_assets=game_size)
+#        if game_size == 4:
+#            dirname = '../../results/networks/Fri_Sep_11_10_00_15_2020/' #4X4
            #    network = get_network_from_dir(dirname)
-            self.dirname, network = gen_new_network(num_assets=4,uniform=False)
+#            self.dirname, network = gen_new_network(num_assets=4,uniform=False)
 
-        if game_size == 3:
+ #       if game_size == 3:
             #dirname = '../../results/networks/Fri_Sep_11_09_33_08_2020/' #3X3
-            dirname = '../../results/three_assets_net/'
-            network = get_network_from_dir(dirname)
+ #           dirname = '../../results/three_assets_net/'
+ #           network = get_network_from_dir(dirname)
             #self.dirname, network = gen_new_network(num_assets=3, uniform=False)
 
         #        dirname, network = gen_new_network(game_size)
+        network = get_network_from_dir( '../../results/networks/')
         self.split_actions_mgr = ActionsManager(assets=network.assets,
                                      step_order_size=self.params['step_order_size'],
                                      max_order_num=self.params['max_order_num'],
@@ -99,10 +104,14 @@ class SearchRootGenerator(RootGenerator):
 
     def __init__(self,exp_params):
         self.__grid = None
+        self.binary = exp_params['binary']
         super().__init__(exp_params)
 
     def _gen_roots(self, game_size):
-        self.__grid = Grid(rounds_left=game_size)
+        if self.binary:
+            self.__grid = BinaryGrid(rounds_left=game_size)
+        else:
+            self.__grid = ProbsGrid(rounds_left=game_size)
         self._gen_complete_game_root(game_size)
         self._gen_split_main_game_root(game_size)
 

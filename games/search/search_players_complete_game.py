@@ -5,7 +5,7 @@ import random
 
 from constants import ATTACKER, CHANCE, DEFENDER
 from games.bases import GameStateBase
-from search import Grid
+from search import ProbsGrid
 from search.search_common_players import SearchAttackerMoveGameState, SearchGameStateBase
 
 

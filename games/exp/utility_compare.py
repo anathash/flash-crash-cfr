@@ -786,21 +786,23 @@ def run_search_utility_cmp():
 def run_search_utility_cmp_nodes(game_size):
     res_dir = setup_dir('search')
     exp_params = {'game_size': game_size,
-                  'attacker_budgets': [4, 5, 11]}
+                  'attacker_budgets': [4, 5, 11],
+                  'binary':True}
 
     #2500000
     root_generator = SearchRootGenerator(exp_params)
 
-    #run_utility_cmp_iterations(root_generator=root_generator,
-    run_sanity_cmp_iterations(root_generator=root_generator,
+    run_utility_cmp_iterations(root_generator=root_generator,
+    #run_sanity_cmp_iterations(root_generator=root_generator,
                           res_dir=res_dir,
                           params =exp_params,
                           min_iterations=1,
-                          max_iterations=1000,
-                          jump=100,
+                          max_iterations=100,
+                          jump=10,
                           game_size=exp_params['game_size'],
                           game_name='search',
                           ratio = 10)
+
     return
 
 def search_sanitty():
@@ -817,5 +819,5 @@ def search_sanitty():
                     1000000, 10000000, 1000000, exp_params['game_size'], 'search')
 
 if __name__ == "__main__":
-    #run_search_utility_cmp_nodes(5)
-    run_fc_utility_cmp_nodes(4)
+    run_search_utility_cmp_nodes(5)
+    #run_fc_utility_cmp_nodes(4)

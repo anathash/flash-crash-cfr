@@ -2,8 +2,8 @@ import copy
 
 from bases import GameStateBase
 from constants import ATTACKER, DEFENDER, GRID
-from search import Grid
-from search.Grid import OCCUPANTS, AgentLocationError
+from search import ProbsGrid
+from search.ProbsGrid import OCCUPANTS, AgentLocationError
 
 
 
@@ -68,7 +68,7 @@ class SearchDefenderMoveGameState(SearchGameStateBase):
     def action_str(action):
         return '(' + action[0].name + ', ' + action[1].name + ')'
 
-    def __init__(self, parent, to_move, location_history, grid:Grid, rounds_left):
+    def __init__(self, parent, to_move, location_history, grid:ProbsGrid, rounds_left):
         if grid.is_terminal():
             raise AgentLocationError
 
@@ -92,7 +92,7 @@ class SearchDefenderMoveGameState(SearchGameStateBase):
 
 class SearchGridMoveGameState(SearchGameStateBase):
 
-    def __init__(self, parent, to_move, location_history, grid:Grid, rounds_left):
+    def __init__(self, parent, to_move, location_history, grid:ProbsGrid, rounds_left):
         super().__init__(parent=parent, to_move=to_move, actions=['GRID'],
                          grid=grid, location_history=location_history, rounds_left = rounds_left)
 

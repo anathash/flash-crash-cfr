@@ -6,7 +6,7 @@ from cfr import VanillaCFR
 from constants import ATTACKER
 from exp.archive.cfr_experiment_runner import compute_complete_game_equilibrium
 from exp.root_generators import SearchRootGenerator
-from search.Grid import Grid
+from search.ProbsGrid import Grid
 from search.search_players_complete_game import SearchCompleteGameRootChanceGameState
 from search.search_players_split_main_game import SearchMainGameRootChanceGameState
 from solvers.test_utils import compare_equilibrium

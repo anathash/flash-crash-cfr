@@ -35,7 +35,7 @@ def cmp_subtree(ut, split_node, complete_node, split_cfr, complete_cfr, attacker
 def compare_equilibrium(ut, game_size, iterations, root_generator, attacker_budgets):
 
     exp_params = {'attacker_budgets':attacker_budgets, 'iterations':iterations}
-    root_generator.gen_roots(game_size)
+    root_generator.gen_roots(game_size, test = True)
 
     split_game_cfr = SplitGameCFR()
     main_game_cfr, selector_cfr = split_game_cfr.run_split_cfr(root_generator, exp_params)

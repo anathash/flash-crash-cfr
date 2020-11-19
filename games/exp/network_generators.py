@@ -2,7 +2,7 @@ import os
 import time
 from AssetFundNetwork import AssetFundsNetwork
 from GameConfig import GameConfig
-from MarketImpactCalculator import ExponentialMarketImpactCalculator
+from MarketImpactCalculator import ExponentialMarketImpactCalculator, SqrtMarketImpactCalculator
 
 
 def generate_paper_network(game_config, num_assets):
@@ -83,9 +83,13 @@ def gen_funds_parameters(num_low_risk, num_medium_risk, num_high_risk, game_conf
     return initial_capitals,initial_leverages, tolerances
 
 
-def get_network_from_dir(dirname):
+def get_network_from_dir(dirname, test = False):
     config = GameConfig()
-    return AssetFundsNetwork.load_from_file(dirname+'/network.json', ExponentialMarketImpactCalculator(config.impact_calc_constant))
+    if test:
+        mic = SqrtMarketImpactCalculator()
+    else:
+        mic = ExponentialMarketImpactCalculator(config.impact_calc_constant)
+    return AssetFundsNetwork.load_from_file(dirname+'/network.json', mic)
 
 
 def gen_new_network(num_assets, uniform = True, results_dir = '../../results/networks/'):

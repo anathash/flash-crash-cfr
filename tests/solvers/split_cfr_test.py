@@ -52,7 +52,7 @@ class TestSplitCFR(unittest.TestCase):
             self.assertTrue(numpy.isclose(float(vanilla_results['attackers'][at]),
                                           float(selector_game_result['attackers'][at]), rtol=0.01, atol=0.01, equal_nan=False))
 
-    def test_flash_crash_split_eq_ppa_cfr(self):
+    def dont_test_flash_crash_split_eq_ppa_cfr(self):
         exp_params = {'defender_budget': 2000000000,
                       'attacker_budgets': [4000000000, 8000000000, 12000000000],
                       'iterations': 300,
@@ -145,7 +145,7 @@ class TestSplitCFR(unittest.TestCase):
                       'iterations': iterations}
 
         root_generator = FlashCrashRootGenerator(exp_params)
-        root_generator.gen_roots(game_size)
+      #  root_generator.gen_roots(game_size, test = True)
         compare_equilibrium(self, game_size, iterations, root_generator, exp_params['attacker_budgets'])
 
     def test_equilibrium_equal(self):
@@ -169,7 +169,7 @@ class TestSplitCFR(unittest.TestCase):
         print('run_test_search_equilibrium(4, 1000)')
         self.cmp_equilibrium(4, 1000)
 
-    def test_fc_game_split_eq_complete_cfr_sigma(self):
+    def dont_test_fc_game_split_eq_complete_cfr_sigma(self):
         self.cmp_fc_game_split_eq_complete_cfr_sigma(1, 3)
         self.cmp_fc_game_split_eq_complete_cfr_sigma(2, 3)
         self.cmp_fc_game_split_eq_complete_cfr_sigma(10, 3)

@@ -29,12 +29,12 @@ class RootGenerator:
         return self.split_actions_mgr.get_probable_portfolios().keys()
     #    return self.split_actions_mgr.get_portfolios_prob().keys()
 
-    def gen_roots(self, game_size):
+    def gen_roots(self, game_size, test = False):
         self.complete_actions_mgr = None
         self.complete_root = None
         self.split_actions_mgr = None
         self.split_root = None
-        self._gen_roots(game_size)
+        self._gen_roots(game_size, test)
 
     def duplicate_root(self):
         raise NotImplementedError
@@ -42,7 +42,7 @@ class RootGenerator:
     def get_attack_costs(self):
         raise NotImplementedError
 
-    def _gen_roots(self, game_size):
+    def _gen_roots(self, game_size, test=False):
         raise NotImplementedError
 
 
@@ -54,22 +54,18 @@ class FlashCrashRootGenerator(RootGenerator):
 
 
 
-    def _gen_roots(self, game_size):
-#        network = get_network_from_dir( '../../results/networks/')
-#       self.dirname, network = gen_new_network(num_assets=game_size)
-#        if game_size == 4:
-#            dirname = '../../results/networks/Fri_Sep_11_10_00_15_2020/' #4X4
-           #    network = get_network_from_dir(dirname)
-#            self.dirname, network = gen_new_network(num_assets=4,uniform=False)
-
- #       if game_size == 3:
-            #dirname = '../../results/networks/Fri_Sep_11_09_33_08_2020/' #3X3
- #           dirname = '../../results/three_assets_net/'
- #           network = get_network_from_dir(dirname)
-            #self.dirname, network = gen_new_network(num_assets=3, uniform=False)
-
+    def _gen_roots(self, game_size, test=False):
+        if test:
+            if game_size == 4:
+                dirname = '../../results/networks/Fri_Sep_11_10_00_15_2020/' #4X4
+                network = get_network_from_dir(dirname, test=True)
+            if game_size == 3:
+                dirname = '../../results/networks/Fri_Sep_11_09_33_08_2020/' #3X3
+                network = get_network_from_dir(dirname, test=True)
         #        dirname, network = gen_new_network(game_size)
-        network = get_network_from_dir( '../../results/networks/')
+        else:
+            #network = get_network_from_dir( '../../results/networks/', test)
+            dirname, network = gen_new_network(game_size)
         self.split_actions_mgr = ActionsManager(assets=network.assets,
                                      step_order_size=self.params['step_order_size'],
                                      max_order_num=self.params['max_order_num'],
@@ -107,7 +103,7 @@ class SearchRootGenerator(RootGenerator):
         self.binary = exp_params['binary']
         super().__init__(exp_params)
 
-    def _gen_roots(self, game_size):
+    def _gen_roots(self, game_size, test=False):
         if self.binary:
             self.__grid = BinaryGrid(rounds_left=game_size)
         else:

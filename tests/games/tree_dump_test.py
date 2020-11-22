@@ -36,7 +36,7 @@ class DumpTreeTest  (unittest.TestCase):
         self.assertEqual(ser_tree.is_terminal(), act_tree.is_terminal())
         if ser_tree.is_terminal():
             self.assertEqual(ser_tree.evaluation(), act_tree.evaluation())
-        if '_chance_prob' in act_tree.__dict__:
+        if '_chance_prob' in act_tree.__dict__ or act_tree.to_move == 0:
             self.assertEqual(ser_tree.chance_prob(), act_tree.chance_prob())
         else:
             self.assertIsNone(ser_tree.chance_prob())

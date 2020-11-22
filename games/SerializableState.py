@@ -3,6 +3,8 @@ import json
 import jsonpickle
 
 from bases import GameStateBase
+from constants import CHANCE, MARKET, GRID
+
 
 class SerializableState(GameStateBase):
 
@@ -15,6 +17,7 @@ class SerializableState(GameStateBase):
         self.__inf_set = inf_set
         self.children = children
         self.__chance_prob = chance_prob
+        self.value = None
 
     def inf_set(self):
         return self.__inf_set
@@ -30,13 +33,14 @@ class SerializableState(GameStateBase):
     def chance_prob(self):
         return self.__chance_prob
 
- #   def set_value(self, value):
- #       self.value = value
+    def update_chance_probs(self, new_probs):
+        self.__chance_prob = {str(x):y for x,y in new_probs.items()}
 
-#    def get_value(self):
-#        return self.value
+    def set_value(self, value):
+        self.value = value
 
-
+    def get_value(self):
+        return self.value
 
 def rec_create_ser_tree(state: GameStateBase):
     if state.is_terminal():
@@ -74,14 +78,20 @@ def fill_ser_state(tree_size, children, to_move, actions, inf_set, terminal_valu
                  'chance_prob': chance_prob}
     return state_str
 
-
 def rec_serialize_tree(state):
     if state.is_terminal():
-        return fill_ser_state(tree_size=state.tree_size, to_move=state.to_move, actions=state.actions,
-                              children=state.children, inf_set=state.inf_set(), terminal_value=state.evaluation())
+        terminal_vals = state.evaluation()
     else:
-        return fill_ser_state(tree_size=state.tree_size, to_move=state.to_move, actions=state.actions,
-                              children=state.children, inf_set=state.inf_set())
+        terminal_vals = None
+
+    if state.to_move == GRID or state.to_move == MARKET:
+        chance_prob=state.chance_prob()
+    else:
+        chance_prob = None
+
+    return fill_ser_state(tree_size=state.tree_size, to_move=state.to_move, actions=state.actions,
+                          children=state.children, inf_set=state.inf_set(), terminal_value = terminal_vals,
+                          chance_prob = chance_prob)
 
 
 def save_tree_to_file(root: GameStateBase, filename):

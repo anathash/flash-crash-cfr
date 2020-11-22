@@ -5,7 +5,7 @@ import numpy
 from cfr import VanillaCFR
 from constants import ATTACKER
 from exp.archive.cfr_experiment_runner import compute_complete_game_equilibrium
-from exp.root_generators import SearchRootGenerator
+from exp.root_generators import SearchRootGenerator, RootGenerator
 from search.ProbsGrid import ProbsGrid
 from search.search_players_complete_game import SearchCompleteGameRootChanceGameState
 from search.search_players_split_main_game import SearchMainGameRootChanceGameState
@@ -154,7 +154,7 @@ class TestSplitCFR(unittest.TestCase):
                     self.assertTrue(False)
 
 
-    def test_search_game_split_eq_complete_cfr(self):
+    def dont_test_search_game_split_eq_complete_cfr(self):
         rounds_left = 4
         iterations = 2
         attacker_budgets = [4,5,11]
@@ -266,7 +266,8 @@ class TestSplitCFR(unittest.TestCase):
 
         exp_params = {'attacker_budgets':attacker_budgets, 'iterations':iterations, 'binary': False}
         root_generator = SearchRootGenerator(exp_params)
-        compare_equilibrium(self, rounds_left, iterations, root_generator, attacker_budgets)
+        root_generator.gen_roots(rounds_left, test=True)
+        compare_equilibrium(self,  iterations, root_generator, attacker_budgets)
 
 
     def test_search_equilibrium(self):
@@ -287,8 +288,19 @@ class TestSplitCFR(unittest.TestCase):
         self.run_test_search_equilibrium(6, 2)
         print('run_test_search_equilibrium(6, 10)')
         self.run_test_search_equilibrium(6, 10)
-        print('run_test_search_equilibrium(6, 1000)')
-        self.run_test_search_equilibrium(6, 1000)
+        print('run_test_search_equilibrium(6, 100)')
+        self.run_test_search_equilibrium(6, 100)
+
+    def test_loaded_tree_equilibrium_equal(self):
+        attacker_budgets = [4,5,11]
+        exp_params = {'attacker_budgets':attacker_budgets, 'iterations':100, 'binary': False}
+        root_generator = SearchRootGenerator(exp_params)
+        root_generator.gen_roots(4, True)
+        filename = '../resources/cfr_test_search_rg.json'
+        root_generator.save_roots_to_file(filename)
+        loaded_root_generator = RootGenerator.load_root_generator(filename)
+        compare_equilibrium(self, 2, loaded_root_generator, attacker_budgets)
+
 
 
 if __name__ == '__main__':

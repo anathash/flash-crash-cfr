@@ -7,7 +7,7 @@ from cfr import VanillaCFR
 from exp.archive.cfr_experiment_runner import compute_cfr_equilibrium, compute_complete_game_equilibrium
 from exp.network_generators import get_network_from_dir, gen_new_network
 from ActionsManager import ActionsManager
-from exp.root_generators import FlashCrashRootGenerator
+from exp.root_generators import FlashCrashRootGenerator, RootGenerator
 from flash_crash_players_portfolio_cfr import PortfolioFlashCrashRootChanceGameState
 from flash_crash_players_portfolio_per_attacker_cfr import PPAFlashCrashRootChanceGameState
 from solvers.test_utils import compare_equilibrium
@@ -16,7 +16,7 @@ from split_game_cfr import SplitGameCFR
 
 class TestSplitCFR(unittest.TestCase):
 
-    def test_flash_crash_split_eq_cfr(self):
+    def dont_test_flash_crash_split_eq_cfr(self):
         exp_params = {'defender_budget': 2000000000,
                       'attacker_budgets': [4000000000, 6000000000],
                       'main_game_iteration_portion': 0.9,
@@ -145,8 +145,8 @@ class TestSplitCFR(unittest.TestCase):
                       'iterations': iterations}
 
         root_generator = FlashCrashRootGenerator(exp_params)
-      #  root_generator.gen_roots(game_size, test = True)
-        compare_equilibrium(self, game_size, iterations, root_generator, exp_params['attacker_budgets'])
+        root_generator.gen_roots(game_size, test = True)
+        compare_equilibrium(self, iterations, root_generator, exp_params['attacker_budgets'])
 
     def test_equilibrium_equal(self):
         print(' 3 assets')
@@ -179,6 +179,21 @@ class TestSplitCFR(unittest.TestCase):
         self.cmp_fc_game_split_eq_complete_cfr_sigma(2, 4)
         self.cmp_fc_game_split_eq_complete_cfr_sigma(10, 4)
         self.cmp_fc_game_split_eq_complete_cfr_sigma(100, 4)
+
+    def test_loaded_tree_equilibrium_equal(self):
+        exp_params = {'defender_budget': 2000000000,
+                      'attacker_budgets': [4000000000, 8000000000, 12000000000],
+                      'step_order_size': SysConfig.get("STEP_ORDER_SIZE") * 2,
+                      'max_order_num': 1,
+                      'iterations': 10}
+        game_size = 3
+        root_generator = FlashCrashRootGenerator(exp_params)
+        root_generator.gen_roots(game_size, test=True)
+        filename = '../resources/cfr_test_flah_crash_rg.json'
+        root_generator.save_roots_to_file(filename)
+        loaded_root_generator = RootGenerator.load_root_generator(filename)
+        compare_equilibrium(self, exp_params['iterations'], loaded_root_generator, exp_params['attacker_budgets'])
+
 
 if __name__ == '__main__':
     unittest.main()

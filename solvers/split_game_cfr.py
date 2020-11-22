@@ -203,7 +203,7 @@ class SplitGameCFR:
 #        for attacker in attacker_types:
 #            attackers_eq[attacker] = selector_cfr.root.children[str(attacker)].get_value()
 
-        cumulative_pos_regret = selector_cfr.average_total_imm_regret(iterations)
+        cumulative_pos_regret = selector_cfr.average_positive_regret(iterations)
         return {'pos_regret': cumulative_pos_regret, 'exploitability': 2 * cumulative_pos_regret,
                             'defender': defender_eq, #'attackers': attackers_eq,
                             'portfolios_dist': nash_eq, 'sigma': sigma, 'root': selector_cfr.root,

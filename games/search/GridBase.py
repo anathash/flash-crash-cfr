@@ -14,7 +14,7 @@ from math import inf
 
 MAX_X = 4
 MAX_Y = 2
-MAX_VALUE = 0
+MAX_VALUE = 100
 
 
 # define Python user-defined exceptions

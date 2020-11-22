@@ -346,11 +346,11 @@ def run_utility_cmp_iterations(root_generator, res_dir, params,
                                min_iterations, max_iterations, jump, game_size, game_name, ratio):
 
     fieldnames = ['nodes allocated', 'attacker algorithm', 'defender algorithm', 'attacker game iterations',
-                  'defender game iterations', 'defender utility']
+                  'defender game iterations', 'defender utility','split_exploitability', 'complete_exploitability']
     for a in params['attacker_budgets']:
         fieldnames.append('attacker ' + str(a) + ' utility')
 
-    file_name = res_dir + game_name + '_utility_cmp' + '_' + str(game_size)+'.csv'
+    file_name = res_dir + game_name + '_utility_cmp' + '_' + str(game_size)+ '_' + str(params['attacker_budgets'])+'.csv'
     with open(file_name,'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -387,7 +387,7 @@ def run_utility_cmp_iterations(root_generator, res_dir, params,
         selector_game_result = split_game_cfr.get_selector_stats(main_game_cfr, selector_cfr, split_iterations,
                                                                  params['attacker_budgets'],
                                                                  root_generator.get_attack_costs())
-        main_game_results = split_game_cfr.get_main_results_stats(main_game_cfr, params['iterations'])
+      #  main_game_results = split_game_cfr.get_main_results_stats(main_game_cfr, params['iterations'])
 
 #        print(root_generator.get_complete_game_root().tree_size)
 #        print(nodes_allocated  / root_generator.get_complete_game_root().tree_size )
@@ -437,18 +437,24 @@ def run_utility_cmp_iterations(root_generator, res_dir, params,
                                               split_selection_root=selector_game_result['root'],
                                               split_selection_cfr=selector_game_result['cfr'],
                                               split_main_root=root_generator.get_split_main_game_root(),
-                                              split_main_cfr=main_game_results['cfr'],
+                                              split_main_cfr=main_game_cfr,
                                               attacker_alg=setting['attacker_alg'],
                                               defender_alg = setting['defender_alg'],
                                               attacker_types=  params['attacker_budgets'],
                                                 rounds=1000)
+
+            complete_exploitability = 2*complete_cfr.average_positive_regret(complete_iterations)
+            split_exploitability = 2*(main_game_cfr.average_positive_regret(split_iterations) +
+                                      selector_cfr.average_positive_regret(split_iterations))
 
             row = {'nodes allocated': nodes_allocated,
                    'attacker algorithm': setting['attacker_alg'],
                    'defender algorithm': setting['defender_alg'],
                    'attacker game iterations': attacker_iterations,
                    'defender game iterations': defender_iterations,
-                   'defender utility': utilities['defender']}
+                   'defender utility': utilities['defender'],
+                   'complete_exploitability':complete_exploitability,
+                   'split_exploitability':split_exploitability}
             for a in params['attacker_budgets']:
                 k = 'attacker ' + str(a) + ' utility'
                 row.update({k: utilities[str(a)]})
@@ -786,7 +792,7 @@ def run_search_utility_cmp():
 def run_search_utility_cmp_nodes(game_size):
     res_dir = setup_dir('search')
     exp_params = {'game_size': game_size,
-                  'attacker_budgets': [4, 5, 11],
+                  'attacker_budgets': [4, 5, 8,  9, 11],
                   'binary':True}
 
     #2500000
@@ -819,5 +825,5 @@ def search_sanitty():
                     1000000, 10000000, 1000000, exp_params['game_size'], 'search')
 
 if __name__ == "__main__":
-    run_search_utility_cmp_nodes(5)
+    run_search_utility_cmp_nodes(6)
     #run_fc_utility_cmp_nodes(4)

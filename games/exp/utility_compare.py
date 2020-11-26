@@ -356,7 +356,7 @@ def run_utility_cmp_iterations(root_generator, res_dir, params,
         writer.writeheader()
 
     settings = [#{'attacker_alg': 'SPLIT', 'defender_alg': 'SPLIT'},
-                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE'},
+#                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE'},
 #                {'attacker_alg': 'COMPLETE' + str(ratio), 'defender_alg': 'COMPLETE'},
 #                {'attacker_alg': 'COMPLETE', 'defender_alg': 'COMPLETE' + str(ratio)},
                 {'attacker_alg': 'COMPLETE', 'defender_alg': 'SPLIT'},
@@ -373,8 +373,10 @@ def run_utility_cmp_iterations(root_generator, res_dir, params,
         split_overall_nodes_num = root_generator.get_split_main_game_root().tree_size + 1 + \
                                   len(params['attacker_budgets']) + \
                                   sum([len(v) for k, v, in root_generator.get_attack_costs().items()])
+        print('split_overall_nodes_num:' + str(split_overall_nodes_num))
+        print('complete_overall_nodes_num:' + str(root_generator.get_complete_game_root().tree_size))
 
-        split_iterations = int(floor(nodes_allocated / split_overall_nodes_num))
+        split_iterations = int(ceil(nodes_allocated / split_overall_nodes_num))
 
         print('complete_iterations:' + str(complete_iterations))
         print("nodes allocated:" + str(nodes_allocated))
@@ -441,7 +443,7 @@ def run_utility_cmp_iterations(root_generator, res_dir, params,
                                               attacker_alg=setting['attacker_alg'],
                                               defender_alg = setting['defender_alg'],
                                               attacker_types=  params['attacker_budgets'],
-                                                rounds=1000)
+                                                rounds=100000)
 
             complete_exploitability = 2*complete_cfr.average_positive_regret(complete_iterations)
             split_exploitability = 2*(main_game_cfr.average_positive_regret(split_iterations) +
@@ -789,11 +791,11 @@ def run_search_utility_cmp():
     return
 
 
-def run_search_utility_cmp_nodes(game_size):
+def run_search_utility_cmp_nodes(game_size, attacker_budgets, binary):
     res_dir = setup_dir('search')
     exp_params = {'game_size': game_size,
-                  'attacker_budgets': [4, 5, 8,  9, 11],
-                  'binary':True}
+                  'attacker_budgets': attacker_budgets,
+                  'binary':binary}
 
     #2500000
     root_generator = SearchRootGenerator(exp_params)
@@ -802,14 +804,47 @@ def run_search_utility_cmp_nodes(game_size):
     #run_sanity_cmp_iterations(root_generator=root_generator,
                           res_dir=res_dir,
                           params =exp_params,
-                          min_iterations=1,
-                          max_iterations=100,
+                          min_iterations=10,
+                          max_iterations=102,
                           jump=10,
                           game_size=exp_params['game_size'],
                           game_name='search',
                           ratio = 10)
 
     return
+
+
+def print_tree_size(game_name, game_size, attacker_budgets_list, exp_params, create_root_generator):
+    res_dir = setup_dir(game_name)
+    file_name = res_dir + game_name + '_tree_sizes' + '_' + str(game_size) + '.csv'
+    fieldnames = ['Attackers', 'sub_tree_size', 'split main root size', 'complete root size',
+                  'complete_sub_tree_num', 'split_sub_tree_num', 'complete_sub_tree_num/split_sub_tree_num']
+    with open(file_name, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for attacker_budgets in attacker_budgets_list:
+            exp_params['attacker_budgets'] = attacker_budgets
+            print(attacker_budgets)
+            #root_generator = SearchRootGenerator(exp_params)
+            root_generator = create_root_generator(exp_params)
+            root_generator.gen_roots(game_size)
+            complete_root = root_generator.get_complete_game_root()
+            split_main_root = root_generator.get_split_main_game_root()
+            first_child = list(complete_root.children.values())[0]
+            sub_tree_size = list(first_child.children.values())[0].tree_size
+            complete_subtree_num = sum([len(c.children.keys()) for c in complete_root.children.values()])
+            split_subtree_num = len(split_main_root.children.keys())
+            row = {'Attackers': exp_params['attacker_budgets'],
+                   'sub_tree_size': sub_tree_size,
+                   'split main root size':str(split_main_root.tree_size),
+                   'complete root size':  str(complete_root.tree_size),
+                   'complete_sub_tree_num':complete_subtree_num,
+                   'split_sub_tree_num':split_subtree_num,
+                   'complete_sub_tree_num/split_sub_tree_num': complete_subtree_num / split_subtree_num}
+            writer.writerow(row)
+
+    return
+
 
 def search_sanitty():
     res_dir = setup_dir('search')
@@ -824,6 +859,48 @@ def search_sanitty():
     run_utility_cmp_nodes_sanity(root_generator, res_dir, exp_params,
                     1000000, 10000000, 1000000, exp_params['game_size'], 'search')
 
+def print_search_tree_size_binary():
+    attacker_budgets_list = [[3,5],[3, 11],[5, 11],[3, 5, 11]]
+    exp_params = {'binary': True}
+    print_tree_size('search', 5, attacker_budgets_list,  exp_params, lambda x: SearchRootGenerator(x))
+    print_tree_size('search', 6, attacker_budgets_list,  exp_params, lambda x: SearchRootGenerator(x))
+
+def print_fc_tree_size_binary():
+    attacker_budgets_list = [[3,5],[3, 11],[5, 11],[3, 5, 11]]
+    exp_params = {'binary': True}
+    print_tree_size('search', 5, attacker_budgets_list,  exp_params, lambda x: SearchRootGenerator(x))
+    print_tree_size('search', 6, attacker_budgets_list,  exp_params, lambda x: SearchRootGenerator(x))
+
+def print_search_tree_size_probs():
+    attacker_budgets_list =[
+    [3, 11],
+    [3, 5, 11],
+    [3, 4, 5, 11],
+    [3, 4, 5, 8, 11],
+    [3, 4, 5, 6, 8, 11],
+    [3, 4, 5, 6, 7, 8, 11],
+    [3, 4, 5, 6, 7, 8, 9, 11]]
+
+    exp_params = {'binary': False}
+    print_tree_size('search', 5, attacker_budgets_list,  exp_params, lambda x: SearchRootGenerator(x))
+    print_tree_size('search', 6, attacker_budgets_list,  exp_params, lambda x: SearchRootGenerator(x))
+
 if __name__ == "__main__":
-    run_search_utility_cmp_nodes(6)
+  #  print_search_tree_size_binary()
+    run_search_utility_cmp_nodes(5, [3, 11], True)
+    run_search_utility_cmp_nodes(5, [5, 11], True)
+    run_search_utility_cmp_nodes(5, [3, 5, 11], True)
+    run_search_utility_cmp_nodes(6, [3, 11], True)
+    run_search_utility_cmp_nodes(6, [5, 11], True)
+    run_search_utility_cmp_nodes(6, [3, 5, 11], True)
+
+#    run_search_utility_cmp_nodes(6, [3, 11])
+#    run_search_utility_cmp_nodes(6, [3, 5, 11])
+#    run_search_utility_cmp_nodes(6, [3, 4, 5, 11])
+#    run_search_utility_cmp_nodes(6, [3, 4, 5, 8, 11])
+#    run_search_utility_cmp_nodes(6, [3, 4, 5, 6, 8, 11])
+#    run_search_utility_cmp_nodes(6, [3, 4, 5, 6, 7, 8, 11])
+#    run_search_utility_cmp_nodes(6, [3, 4, 5, 6, 7, 8, 9, 11])
+#    run_search_utility_cmp_nodes(6, [3, 4, 5, 6, 7, 8, 9, 11])
+
     #run_fc_utility_cmp_nodes(4)

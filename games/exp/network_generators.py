@@ -92,7 +92,7 @@ def get_network_from_dir(dirname, test = False):
     return AssetFundsNetwork.load_from_file(dirname+'/network.json', mic)
 
 
-def gen_new_network(num_assets, uniform = True, results_dir = '../../results/networks/'):
+def gen_new_network(num_assets, net_type ='nonuniform' , results_dir = '../../results/networks/'):
     print('gen network')
     now = time.ctime()
     dirname = results_dir + now.replace(":", "_").replace(" ", "_") + '/'
@@ -103,10 +103,11 @@ def gen_new_network(num_assets, uniform = True, results_dir = '../../results/net
     config.tolerance = 1.01
     config.initial_fund_capital = 1000000
     config.density = 0.5
-#    return dirname, generate_paper_network(config, num_assets)
-    if uniform:
+    if net_type == 'paper':
+        return dirname, generate_paper_network(config, num_assets)
+    elif net_type == 'uniform':
         return dirname, gen_network_uniform_funds(config,  num_assets, '..\\..\\resources\\assets.csv', dirname)
-    else:
+    elif net_type == 'nonuniform':
         return dirname, gen_network_nonuniform_funds(config,  num_assets, '..\\..\\resources\\assets.csv',dirname, 5, 5,5)
 
 

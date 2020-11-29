@@ -885,14 +885,60 @@ def print_search_tree_size_probs():
     print_tree_size('search', 5, attacker_budgets_list,  exp_params, lambda x: SearchRootGenerator(x))
     print_tree_size('search', 6, attacker_budgets_list,  exp_params, lambda x: SearchRootGenerator(x))
 
-if __name__ == "__main__":
-  #  print_search_tree_size_binary()
+
+
+def fc_create_trees(game_size, attacker_budgets, net_type):
+    res_dir = setup_dir('flash_crash')
+    exp_params = {
+                  'game_size': game_size,
+                  'defender_budget': 400000,
+                  #'attacker_budgets': [4000000000,   8000000000],
+                  'attacker_budgets': attacker_budgets,
+                  'step_order_size': SysConfig.get("STEP_ORDER_SIZE")*2 ,
+                  'max_order_num': 1,
+                  'net_type':net_type}
+
+#    with open(res_dir+'params.json', 'w') as fp:
+#        json.dump(exp_params, fp)
+
+    root_generator = FlashCrashRootGenerator(exp_params)
+    root_generator.gen_roots(game_size)
+    filename = '../../resources/fc_tree_' + str(game_size) + '_' +\
+               str(exp_params['attacker_budgets']) + '_' + exp_params['net_type'] + '.json'
+
+    root_generator.save_roots_to_file(filename)
+
+def search_utility_exp():
+    print_search_tree_size_binary()
     run_search_utility_cmp_nodes(5, [3, 11], True)
     run_search_utility_cmp_nodes(5, [5, 11], True)
     run_search_utility_cmp_nodes(5, [3, 5, 11], True)
     run_search_utility_cmp_nodes(6, [3, 11], True)
     run_search_utility_cmp_nodes(6, [5, 11], True)
     run_search_utility_cmp_nodes(6, [3, 5, 11], True)
+
+if __name__ == "__main__":
+    for net_type in ['nonuniform','paper']:
+        fc_create_trees(3, [150000,  300000, 450000], net_type)
+        fc_create_trees(3, [150000,  300000], net_type)
+        fc_create_trees(3, [150000, 450000], net_type)
+        fc_create_trees(3, [300000, 450000], net_type)
+
+        fc_create_trees(4, [150000,  300000, 450000], net_type)
+        fc_create_trees(4, [150000,  300000], net_type)
+        fc_create_trees(4, [150000, 450000], net_type)
+        fc_create_trees(4, [300000, 450000], net_type)
+
+        fc_create_trees(4, [600000,  300000, 450000], net_type)
+        fc_create_trees(4, [150000,  600000, 450000], net_type)
+        fc_create_trees(4, [150000,  300000, 600000], net_type)
+        fc_create_trees(4, [150000, 600000], net_type)
+        fc_create_trees(4, [300000, 600000], net_type)
+        fc_create_trees(4, [450000, 600000], net_type)
+
+        fc_create_trees(4, [150000, 300000, 450000, 600000], net_type)
+
+
 
 #    run_search_utility_cmp_nodes(6, [3, 11])
 #    run_search_utility_cmp_nodes(6, [3, 5, 11])

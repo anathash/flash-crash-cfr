@@ -80,6 +80,7 @@ class FlashCrashRootGenerator(RootGenerator):
 
     def __init__(self,exp_params):
         super().__init__(exp_params)
+        self.net_type = exp_params['net_type']
 
     def _gen_roots(self, game_size, test=False):
         if test:
@@ -92,7 +93,7 @@ class FlashCrashRootGenerator(RootGenerator):
         #        dirname, network = gen_new_network(game_size)
         else:
             #network = get_network_from_dir( '../../results/networks/', test)
-            dirname, network = gen_new_network(game_size)
+            dirname, network = gen_new_network(game_size, self.net_type)
         actions_mgr = ActionsManager(assets=network.assets,
                                            step_order_size=self.params['step_order_size'],
                                            max_order_num=self.params['max_order_num'],

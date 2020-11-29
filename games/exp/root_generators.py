@@ -16,8 +16,8 @@ from search.search_players_split_main_game import SearchMainGameRootChanceGameSt
 class RootGenerator:
     def __init__(self, exp_params):
         self.params = exp_params
-#        self.complete_actions_mgr = None
         self.complete_root = None
+#        self.complete_actions_mgr = None
 #        self.split_actions_mgr = None
         self.split_root = None
         self.attack_costs = None

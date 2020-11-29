@@ -22,6 +22,7 @@ class RootGeneratorTest  (unittest.TestCase):
         self.assertEqual(act_tree.parent, p_act)
 
         self.assertEqual(ser_tree.to_move, act_tree.to_move)
+        self.assertEqual(ser_tree.tree_size, act_tree.tree_size)
         self.assertCountEqual(ser_tree.actions, act_tree.actions)
         self.assertEqual(ser_tree.inf_set(), act_tree.inf_set())
         self.assertEqual(ser_tree.is_terminal(), act_tree.is_terminal())
@@ -42,13 +43,16 @@ class RootGeneratorTest  (unittest.TestCase):
             'defender_budget': 400000,
             'attacker_budgets': [450000,  900000],
             'step_order_size': SysConfig.get("STEP_ORDER_SIZE") * 2,
-            'max_order_num': 1}
+            'max_order_num': 1,
+            'net_type': 'uniform'}
 
         root_generator = FlashCrashRootGenerator(exp_params)
         root_generator.gen_roots(game_size=3, test = True)
         filename = '../resources/root_generator_fc.json'
         root_generator.save_roots_to_file(filename)
-        loaded_root_generator = RootGenerator.load_root_generator(filename)
+        exp_params['trees_file'] = filename
+        loaded_root_generator = FlashCrashRootGenerator(exp_params)
+        loaded_root_generator.gen_roots(game_size = 4, test = False)
         self.assertDictEqual(root_generator.get_attack_costs(),
                          loaded_root_generator.get_attack_costs())
 
@@ -73,7 +77,9 @@ class RootGeneratorTest  (unittest.TestCase):
         root_generator = SearchRootGenerator(exp_params)
         root_generator.gen_roots(game_size=4, test=True)
         root_generator.save_roots_to_file(filename)
-        loaded_root_generator = RootGenerator.load_root_generator(filename)
+        exp_params['trees_file'] = filename
+        loaded_root_generator = SearchRootGenerator(exp_params)
+        loaded_root_generator.gen_roots(game_size=6, test=False)
         self.assertDictEqual(root_generator.get_attack_costs(),
                          loaded_root_generator.get_attack_costs())
 

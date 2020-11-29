@@ -22,12 +22,18 @@ class RootGenerator:
         self.split_root = None
         self.attack_costs = None
         self.attack_keys = None
+        self.loaded_from_file = False
+        if 'trees_file' in exp_params:
+            self.trees_file = exp_params['trees_file']
+        else:
+            self.trees_file = None
 
-    @classmethod
-    def load_root_generator(cls, filename):
-        rg = cls({})
-        rg.__load_roots(filename)
-        return rg
+#    @classmethod
+#    def load_root_generator(cls, filename):
+#        rg = cls({})
+#        rg.__load_roots(filename)
+#        rg.loaded_from_file = True
+#        return rg
 
 
     def get_complete_game_root(self):
@@ -50,7 +56,6 @@ class RootGenerator:
         with open(filename, 'w') as fp:
             json.dump(root_gen_dic, fp)
 
-
     def __load_roots(self, filename):
         with open(filename, 'r') as f:
             root_gen_dic = json.load(f)
@@ -67,7 +72,10 @@ class RootGenerator:
         self.split_root = None
         self.attack_costs = None
         self.attack_keys = None
-        self._gen_roots(game_size, test)
+        if self.trees_file:
+            self.__load_roots(self.trees_file)
+        else:
+            self._gen_roots(game_size, test)
 
     def get_attack_costs(self):
         return self.attack_costs
@@ -80,7 +88,14 @@ class FlashCrashRootGenerator(RootGenerator):
 
     def __init__(self,exp_params):
         super().__init__(exp_params)
-        self.net_type = exp_params['net_type']
+        if 'net_type' in exp_params:
+            self.net_type = exp_params['net_type']
+        else:
+            self.net_type = None
+        if 'net_file' in exp_params:
+            self.net_file = exp_params['net_file']
+        else:
+            self.net_file = None
 
     def _gen_roots(self, game_size, test=False):
         if test:
@@ -91,6 +106,8 @@ class FlashCrashRootGenerator(RootGenerator):
                 dirname = '../../results/networks/Fri_Sep_11_09_33_08_2020/' #3X3
                 network = get_network_from_dir(dirname, test=True)
         #        dirname, network = gen_new_network(game_size)
+        elif self.net_file:
+            network = get_network_from_dir(self.net_file, test=False)
         else:
             #network = get_network_from_dir( '../../results/networks/', test)
             dirname, network = gen_new_network(game_size, self.net_type)

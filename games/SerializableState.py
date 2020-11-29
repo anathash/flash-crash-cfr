@@ -8,8 +8,8 @@ from constants import CHANCE, MARKET, GRID
 
 class SerializableState(GameStateBase):
 
-    def __init__(self, parent, to_move, actions, inf_set, children, terminal_value=None, chance_prob = None):
-        self.tree_size = 1
+    def __init__(self, parent, tree_size, to_move, actions, inf_set, children, terminal_value=None, chance_prob = None):
+        self.tree_size = tree_size
         self.parent = parent
         self.to_move = to_move
         self.actions = actions
@@ -60,7 +60,7 @@ def create_ser_tree(state: GameStateBase):
     ser_children = []
     for c in state.children:
         ser_children.append(rec_serialize_tree(c))
-    ser_state = SerializableState(parent=state.parent, to_move=state.to_move, actions=state.actions,
+    ser_state = SerializableState(parent=state.parent, tree_size= state.tree_size, to_move=state.to_move, actions=state.actions,
                                   children=ser_children, inf_set=state.inf_set(), chance_prob=state.chance_prob())
     return ser_state
 
@@ -103,6 +103,7 @@ def save_tree_to_file(root: GameStateBase, filename):
 def load_state_rec(class_dict, parent):
     children = {}
     state = SerializableState(parent = parent,
+                              tree_size= class_dict['tree_size'],
                              to_move = class_dict['to_move'],
                              actions = class_dict['actions'],
                              inf_set = class_dict['inf_set'],

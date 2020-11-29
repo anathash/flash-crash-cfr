@@ -8,6 +8,7 @@ from numpy import random, mean
 from SysConfig import SysConfig
 from cfr import VanillaCFR
 from exp.exp_common import setup_dir
+from exp.network_generators import gen_new_network
 from exp.root_generators import FlashCrashRootGenerator, SearchRootGenerator
 from split_game_cfr import SplitGameCFR
 
@@ -738,29 +739,21 @@ def run_fc_utility_cmp():
                     10, 50, 10, exp_params['game_size'], 'flash_crash')
 
 
-def run_fc_utility_cmp_nodes(game_size):
+def run_fc_utility_cmp_nodes(game_size, attacker_budgets, net_type):
     res_dir = setup_dir('flash_crash')
-    exp_params = {
-                  'game_size': game_size,
-                  'defender_budget': 400000,
-                  #'attacker_budgets': [4000000000,   8000000000],
-                  'attacker_budgets': [450000,  600000,  900000],
-                  'step_order_size': SysConfig.get("STEP_ORDER_SIZE")*2 ,
-                  'max_order_num': 1}
-
-#    with open(res_dir+'params.json', 'w') as fp:
-#        json.dump(exp_params, fp)
-
+    filename = '../../resources/fc_tree_' + str(game_size) + '_' + \
+               str(attacker_budgets) + '_' + net_type + '.json'
+    exp_params = {'trees_file': filename, 'attacker_budgets':attacker_budgets,'game_size':game_size}
     root_generator = FlashCrashRootGenerator(exp_params)
 
    # run_utility_cmp_nodes(root_generator, res_dir, exp_params,exp_params['game_size'], 'flash_crash')
     run_utility_cmp_iterations(root_generator=root_generator,
                                      res_dir=res_dir,
                                      params=exp_params,
-                                     min_iterations=1,
-                                     max_iterations=100,
+                                     min_iterations=10,
+                                     max_iterations=102,
                                      jump=10,
-                                     game_size=exp_params['game_size'],
+                                     game_size=game_size,
                                      game_name='flash_crash',
                                      ratio = 2)
 
@@ -887,7 +880,7 @@ def print_search_tree_size_probs():
 
 
 
-def fc_create_trees(game_size, attacker_budgets, net_type):
+def fc_create_trees(game_size, attacker_budgets, net_type, dirname):
     res_dir = setup_dir('flash_crash')
     exp_params = {
                   'game_size': game_size,
@@ -896,15 +889,16 @@ def fc_create_trees(game_size, attacker_budgets, net_type):
                   'attacker_budgets': attacker_budgets,
                   'step_order_size': SysConfig.get("STEP_ORDER_SIZE")*2 ,
                   'max_order_num': 1,
-                  'net_type':net_type}
+                  'net_file':dirname}
+
 
 #    with open(res_dir+'params.json', 'w') as fp:
 #        json.dump(exp_params, fp)
 
     root_generator = FlashCrashRootGenerator(exp_params)
     root_generator.gen_roots(game_size)
-    filename = '../../resources/fc_tree_' + str(game_size) + '_' +\
-               str(exp_params['attacker_budgets']) + '_' + exp_params['net_type'] + '.json'
+    filename = '../../resources/trees/fc_tree_' + str(game_size) + '_' +\
+               str(exp_params['attacker_budgets']) + '_' + net_type + '.json'
 
     root_generator.save_roots_to_file(filename)
 
@@ -917,26 +911,58 @@ def search_utility_exp():
     run_search_utility_cmp_nodes(6, [5, 11], True)
     run_search_utility_cmp_nodes(6, [3, 5, 11], True)
 
+def gen_fc_all_trees():
+    for net_type in ['nonuniform']:
+        dirname, network = gen_new_network(3, net_type=net_type)
+        print(net_type + ' 3 assets net')
+        print(dirname)
+        fc_create_trees(game_size=3, attacker_budgets=[150000,  300000, 450000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=3, attacker_budgets=[150000,  300000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=3, attacker_budgets=[150000, 450000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=3, attacker_budgets=[300000, 450000], net_type=net_type, dirname=dirname)
+
+        dirname, network = gen_new_network(4, net_type=net_type)
+        print(net_type + ' 4 assets net')
+        print(dirname)
+
+        fc_create_trees(game_size=4, attacker_budgets=[150000,  300000, 450000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=4, attacker_budgets=[150000,  300000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=4, attacker_budgets=[150000, 450000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=4, attacker_budgets=[300000, 450000], net_type=net_type, dirname=dirname)
+
+        fc_create_trees(game_size=4, attacker_budgets=[600000,  300000, 450000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=4, attacker_budgets=[150000,  600000, 450000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=4, attacker_budgets=[150000,  300000, 600000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=4, attacker_budgets=[150000, 600000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=4, attacker_budgets=[300000, 600000], net_type=net_type, dirname=dirname)
+        fc_create_trees(game_size=4, attacker_budgets=[450000, 600000], net_type=net_type, dirname=dirname)
+
+        fc_create_trees(game_size=4, attacker_budgets=[150000, 300000, 450000, 600000], net_type=net_type, dirname=dirname)
+
+
+def run_fc_experiments():
+    net_type = 'nonuniform'
+    run_fc_utility_cmp_nodes(3, [150000,  300000, 450000], net_type)
+    run_fc_utility_cmp_nodes(3, [150000,  300000], net_type)
+    run_fc_utility_cmp_nodes(3, [150000, 450000], net_type)
+    run_fc_utility_cmp_nodes(3, [300000, 450000], net_type)
+
+    run_fc_utility_cmp_nodes(4, [150000,  300000, 450000], net_type)
+    run_fc_utility_cmp_nodes(4, [150000,  300000], net_type)
+    run_fc_utility_cmp_nodes(4, [150000, 450000], net_type)
+    run_fc_utility_cmp_nodes(4, [300000, 450000], net_type)
+
+    run_fc_utility_cmp_nodes(4, [600000,  300000, 450000], net_type)
+    run_fc_utility_cmp_nodes(4, [150000,  600000, 450000], net_type)
+    run_fc_utility_cmp_nodes(4, [150000,  300000, 600000], net_type)
+    run_fc_utility_cmp_nodes(4, [150000, 600000], net_type)
+    run_fc_utility_cmp_nodes(4, [300000, 600000], net_type)
+    run_fc_utility_cmp_nodes(4, [450000, 600000], net_type)
+
+    run_fc_utility_cmp_nodes(4, [150000, 300000, 450000, 600000], net_type)
+
 if __name__ == "__main__":
-    for net_type in ['nonuniform','paper']:
-        fc_create_trees(3, [150000,  300000, 450000], net_type)
-        fc_create_trees(3, [150000,  300000], net_type)
-        fc_create_trees(3, [150000, 450000], net_type)
-        fc_create_trees(3, [300000, 450000], net_type)
-
-        fc_create_trees(4, [150000,  300000, 450000], net_type)
-        fc_create_trees(4, [150000,  300000], net_type)
-        fc_create_trees(4, [150000, 450000], net_type)
-        fc_create_trees(4, [300000, 450000], net_type)
-
-        fc_create_trees(4, [600000,  300000, 450000], net_type)
-        fc_create_trees(4, [150000,  600000, 450000], net_type)
-        fc_create_trees(4, [150000,  300000, 600000], net_type)
-        fc_create_trees(4, [150000, 600000], net_type)
-        fc_create_trees(4, [300000, 600000], net_type)
-        fc_create_trees(4, [450000, 600000], net_type)
-
-        fc_create_trees(4, [150000, 300000, 450000, 600000], net_type)
+    gen_fc_all_trees()
 
 
 

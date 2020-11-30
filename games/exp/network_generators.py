@@ -5,8 +5,7 @@ from GameConfig import GameConfig
 from MarketImpactCalculator import ExponentialMarketImpactCalculator, SqrtMarketImpactCalculator
 
 
-def generate_paper_network(game_config, num_assets):
-    dir_name = '../../results/networks/'
+def generate_paper_network(game_config, num_assets, dir_name):
     initial_capitals = [game_config.initial_fund_capital] * game_config.num_funds
     initial_leverages = [game_config.initial_leverage] * game_config.num_funds
     tolerances = [game_config.tolerance] * game_config.num_funds
@@ -104,7 +103,7 @@ def gen_new_network(num_assets, net_type ='nonuniform' , results_dir = '../../re
     config.initial_fund_capital = 1000000
     config.density = 0.5
     if net_type == 'paper':
-        return dirname, generate_paper_network(config, num_assets)
+        return dirname, generate_paper_network(config, num_assets, dirname)
     elif net_type == 'uniform':
         return dirname, gen_network_uniform_funds(config,  num_assets, '..\\..\\resources\\real_assets.csv', dirname)
     elif net_type == 'nonuniform':

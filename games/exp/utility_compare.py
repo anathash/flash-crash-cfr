@@ -741,7 +741,7 @@ def run_fc_utility_cmp():
 
 def run_fc_utility_cmp_nodes(game_size, attacker_budgets, net_type):
     res_dir = setup_dir('flash_crash')
-    filename = '../../resources/fc_tree_' + str(game_size) + '_' + \
+    filename = '../../resources/trees/fc_tree_' + str(game_size) + '_' + \
                str(attacker_budgets) + '_' + net_type + '.json'
     exp_params = {'trees_file': filename, 'attacker_budgets':attacker_budgets,'game_size':game_size}
     root_generator = FlashCrashRootGenerator(exp_params)
@@ -880,11 +880,11 @@ def print_search_tree_size_probs():
 
 
 
-def fc_create_trees(game_size, attacker_budgets, net_type, dirname):
+def fc_create_trees(game_size, attacker_budgets, net_type, dirname, defender_budget):
     res_dir = setup_dir('flash_crash')
     exp_params = {
                   'game_size': game_size,
-                  'defender_budget': 400000,
+                  'defender_budget': defender_budget,
                   #'attacker_budgets': [4000000000,   8000000000],
                   'attacker_budgets': attacker_budgets,
                   'step_order_size': SysConfig.get("STEP_ORDER_SIZE")*2 ,
@@ -939,6 +939,61 @@ def gen_fc_all_trees():
 
         fc_create_trees(game_size=4, attacker_budgets=[150000, 300000, 450000, 600000], net_type=net_type, dirname=dirname)
 
+def gen_fc_all_trees_real_data():
+    asset1_single_attack = 1400000000
+    asset2_single_attack = 2200000000
+    asset3_single_attack = 2400000000
+
+    budget1 = asset1_single_attack
+    budget2 = asset2_single_attack
+    budget3 = asset3_single_attack
+    budget4 = asset1_single_attack + asset2_single_attack
+    budget5 = asset1_single_attack + asset3_single_attack
+    budget6 = asset2_single_attack + asset3_single_attack
+    budget7 = asset1_single_attack + asset2_single_attack + asset3_single_attack
+
+
+    for net_type in ['nonuniform']:
+        dirname, network = gen_new_network(3, net_type=net_type)
+        print(net_type + ' 3 assets net')
+        print(dirname)
+        fc_create_trees(game_size=3, attacker_budgets=[budget1,  budget2, budget3], net_type=net_type, dirname=dirname, defender_budget = asset2_single_attack)
+        fc_create_trees(game_size=3, attacker_budgets=[budget1,  budget2], net_type=net_type, dirname=dirname, defender_budget = asset2_single_attack)
+        fc_create_trees(game_size=3, attacker_budgets=[budget1,  budget3], net_type=net_type, dirname=dirname, defender_budget = asset2_single_attack)
+        fc_create_trees(game_size=3, attacker_budgets=[budget2,  budget3], net_type=net_type, dirname=dirname, defender_budget = asset2_single_attack)
+
+        fc_create_trees(game_size=3, attacker_budgets=[budget4, budget5], net_type=net_type, dirname=dirname, defender_budget = asset2_single_attack)
+        fc_create_trees(game_size=3, attacker_budgets=[budget4, budget6], net_type=net_type, dirname=dirname, defender_budget = asset2_single_attack)
+        fc_create_trees(game_size=3, attacker_budgets=[budget5, budget6], net_type=net_type, dirname=dirname, defender_budget = asset2_single_attack)
+        fc_create_trees(game_size=3, attacker_budgets=[budget4, budget5, budget6], net_type=net_type, dirname=dirname, defender_budget = asset2_single_attack)
+
+
+def run_fc_experiments_real_assets():
+    net_type = 'nonuniform'
+    asset1_single_attack = 1400000000
+    asset2_single_attack = 2200000000
+    asset3_single_attack = 2400000000
+
+    budget1 = asset1_single_attack
+    budget2 = asset2_single_attack
+    budget3 = asset3_single_attack
+    budget4 = asset1_single_attack + asset2_single_attack
+    budget5 = asset1_single_attack + asset3_single_attack
+    budget6 = asset2_single_attack + asset3_single_attack
+    budget7 = asset1_single_attack + asset2_single_attack + asset3_single_attack
+
+    run_fc_utility_cmp_nodes(game_size=3, attacker_budgets=[budget1, budget2, budget3], net_type=net_type)
+    run_fc_utility_cmp_nodes(game_size=3, attacker_budgets=[budget1, budget2], net_type=net_type)
+    run_fc_utility_cmp_nodes(game_size=3, attacker_budgets=[budget1, budget3], net_type=net_type)
+    run_fc_utility_cmp_nodes(game_size=3, attacker_budgets=[budget2, budget3], net_type=net_type)
+
+    run_fc_utility_cmp_nodes(game_size=3, attacker_budgets=[budget4, budget5], net_type=net_type)
+    run_fc_utility_cmp_nodes(game_size=3, attacker_budgets=[budget4, budget6], net_type=net_type)
+    run_fc_utility_cmp_nodes(game_size=3, attacker_budgets=[budget5, budget6], net_type=net_type)
+    run_fc_utility_cmp_nodes(game_size=3, attacker_budgets=[budget4, budget5, budget6], net_type=net_type)
+
+
+
 
 def run_fc_experiments():
     net_type = 'nonuniform'
@@ -947,22 +1002,22 @@ def run_fc_experiments():
     run_fc_utility_cmp_nodes(3, [150000, 450000], net_type)
     run_fc_utility_cmp_nodes(3, [300000, 450000], net_type)
 
-    run_fc_utility_cmp_nodes(4, [150000,  300000, 450000], net_type)
+
     run_fc_utility_cmp_nodes(4, [150000,  300000], net_type)
     run_fc_utility_cmp_nodes(4, [150000, 450000], net_type)
-    run_fc_utility_cmp_nodes(4, [300000, 450000], net_type)
-
-    run_fc_utility_cmp_nodes(4, [600000,  300000, 450000], net_type)
-    run_fc_utility_cmp_nodes(4, [150000,  600000, 450000], net_type)
-    run_fc_utility_cmp_nodes(4, [150000,  300000, 600000], net_type)
     run_fc_utility_cmp_nodes(4, [150000, 600000], net_type)
+    run_fc_utility_cmp_nodes(4, [300000, 450000], net_type)
     run_fc_utility_cmp_nodes(4, [300000, 600000], net_type)
     run_fc_utility_cmp_nodes(4, [450000, 600000], net_type)
 
+    run_fc_utility_cmp_nodes(4, [150000, 300000, 450000], net_type)
+    run_fc_utility_cmp_nodes(4, [150000, 600000, 450000], net_type)
+    run_fc_utility_cmp_nodes(4, [150000, 300000, 600000], net_type)
+    run_fc_utility_cmp_nodes(4, [300000, 450000, 600000], net_type)
     run_fc_utility_cmp_nodes(4, [150000, 300000, 450000, 600000], net_type)
 
 if __name__ == "__main__":
-    gen_fc_all_trees()
+    run_fc_experiments_real_assets()
 
 
 

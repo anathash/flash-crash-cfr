@@ -106,9 +106,9 @@ def gen_new_network(num_assets, net_type ='nonuniform' , results_dir = '../../re
     if net_type == 'paper':
         return dirname, generate_paper_network(config, num_assets)
     elif net_type == 'uniform':
-        return dirname, gen_network_uniform_funds(config,  num_assets, '..\\..\\resources\\assets.csv', dirname)
+        return dirname, gen_network_uniform_funds(config,  num_assets, '..\\..\\resources\\real_assets.csv', dirname)
     elif net_type == 'nonuniform':
-        return dirname, gen_network_nonuniform_funds(config,  num_assets, '..\\..\\resources\\assets.csv',dirname, 5, 5,5)
+        return dirname, gen_network_nonuniform_funds(config,  num_assets, '..\\..\\resources\\real_assets.csv',dirname, 5, 5,5)
 
 
 #    if uniform:

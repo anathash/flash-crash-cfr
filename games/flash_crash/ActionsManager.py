@@ -159,6 +159,8 @@ class ActionsManager:
         attacks = self.__get_all_attacks(assets, len(assets))
         portfolios_dict = {}
         for attack in attacks:
+            if attack.cost == 0:
+                continue
             if attack.cost not in portfolios_dict:
                 portfolios_dict[attack.cost] = []
             portfolios_dict[attack.cost].append(attack)

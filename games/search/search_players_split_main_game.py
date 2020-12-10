@@ -11,7 +11,7 @@ from search.search_common_players import SearchGameStateBase, SearchAttackerMove
 class SearchMainGameRootChanceGameState(GameStateBase):
     def __init__(self, goal_probs, grid, rounds_left):
         self._chance_prob = {str(x):y for x,y in goal_probs.items()}
-        actions = goal_probs.keys()
+        actions = [x for x in goal_probs.keys() if goal_probs[x] > 0]
         super().__init__(parent=None, to_move=CHANCE, actions = [str(x) for x in actions ])
         defender_curr_locations, attacker_curr_location = grid.get_curr_locations_strs()
         self.children = {

@@ -198,6 +198,32 @@ class CounterfactualRegretMinimizationBase:
         #        node.set_value(value)
         return value
 
+    def __opt_best_response_value_recursive(self, node, pl):
+        value = 0.
+        if node.is_terminal():
+            value = node.evaluation()
+            return value
+        if pl != node.to_move:
+            for action in node.actions:
+                value += self.nash_equilibrium[node.inf_set()][action] * self.__opt_best_response_value_recursive(
+                    node.play(action), pl)
+            #        node.set_value(value)
+            return value
+        else:
+            values = []
+            for action in node.actions:
+                values.append(self.__opt_best_response_value_recursive(node.play(action), pl))
+            if pl == ATTACKER:
+                return min(values)
+            else:
+                return max(values)
+
+    def get_exploitability(self):
+        opt_val_defender = self.__opt_best_response_value_recursive(self.root, DEFENDER)
+        opt_val_attacker = self.__opt_best_response_value_recursive(self.root, ATTACKER)
+        return opt_val_defender - opt_val_attacker
+
+
     def attackers_cfr_utilities(self):
         values = {}
         for attack in self.root.actions:
